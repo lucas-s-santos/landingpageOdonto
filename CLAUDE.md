@@ -4,9 +4,13 @@ Produzido pela CalmDev. Trabalho comercial real, vai ser vendido a um cliente.
 
 ## Leia antes de qualquer coisa
 
+- `HANDOFF.md` — **comece por aqui.** Em que passo o projeto parou, o que decidir antes
+  de codar, pendências técnicas já apuradas (fontes, vídeos, arrumação de arquivos).
 - `BRIEF.md` — público, dor do cliente, restrição legal, fluxo da página, direção
   visual, copy. É a fonte da verdade.
 - `MOTION.md` — especificação de movimento com valores concretos.
+- `PLANO-DESIGN.md` — saída do passo 1: paleta com contrastes medidos, escala
+  tipográfica, grade, ritmo vertical, wireframes e revisão anti-clichê.
 
 Se algo neste arquivo conflitar com `BRIEF.md`, o `BRIEF.md` vence.
 
