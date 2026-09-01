@@ -1,0 +1,29 @@
+# dependências
+node_modules/
+
+# build
+dist/
+.astro/
+.output/
+.vercel/
+
+# ambiente
+.env
+.env.*
+!.env.example
+
+# playwright
+test-results/
+playwright-report/
+blob-report/
+.playwright/
+
+# sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# editor
+.vscode/*
+!.vscode/extensions.json
+.idea/
