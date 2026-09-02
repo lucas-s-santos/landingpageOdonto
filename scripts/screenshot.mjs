@@ -12,7 +12,7 @@
 import { chromium } from '@playwright/test';
 import { createServer } from 'node:http';
 import { readFile, stat, mkdir } from 'node:fs/promises';
-import { join, extname, resolve } from 'node:path';
+import { join, extname, resolve, sep } from 'node:path';
 
 const RAIZ = resolve('dist');
 const SAIDA = resolve(process.argv[2] ?? 'screenshots');
@@ -41,7 +41,17 @@ const MIME = {
 
 const servidor = createServer(async (req, res) => {
   try {
-    let caminho = join(RAIZ, decodeURIComponent(req.url.split('?')[0]));
+    let caminho = resolve(RAIZ, '.' + decodeURIComponent(req.url.split('?')[0]));
+
+    // Sem esta checagem, um pedido a /../../../algum/arquivo sai de dist/ e
+    // serve qualquer arquivo da máquina enquanto o script roda. É servidor
+    // local e efêmero, mas é traversal de verdade e o conserto é uma linha.
+    if (caminho !== RAIZ && !caminho.startsWith(RAIZ + sep)) {
+      res.writeHead(403);
+      res.end('403');
+      return;
+    }
+
     if ((await stat(caminho)).isDirectory()) caminho = join(caminho, 'index.html');
     res.writeHead(200, { 'Content-Type': MIME[extname(caminho)] ?? 'application/octet-stream' });
     res.end(await readFile(caminho));
@@ -64,6 +74,26 @@ for (const { nome, width, height } of LARGURAS) {
   });
   await pagina.goto(`http://localhost:${PORTA}/`, { waitUntil: 'networkidle' });
   await pagina.evaluate(() => document.fonts.ready);
+
+  // Percorre a página inteira antes de fotografar. Sem isto, `loading="lazy"`
+  // nunca dispara para o que está abaixo da dobra e o screenshot de página
+  // inteira sai com buracos — foi exatamente assim que a imagem da seção 3
+  // apareceu vazia no mobile. Depois volta ao topo.
+  await pagina.evaluate(async () => {
+    const passo = window.innerHeight * 0.8;
+    for (let y = 0; y < document.body.scrollHeight; y += passo) {
+      window.scrollTo(0, y);
+      await new Promise((r) => setTimeout(r, 90));
+    }
+    window.scrollTo(0, 0);
+    await Promise.all(
+      [...document.querySelectorAll('img')]
+        .filter((img) => !img.complete)
+        .map((img) => new Promise((r) => img.addEventListener('load', r, { once: true })))
+    );
+  });
+  await pagina.waitForLoadState('networkidle');
+
   await pagina.screenshot({ path: join(SAIDA, `${nome}.png`), fullPage: true });
   console.log(`  ${nome}px → ${join(SAIDA, `${nome}.png`)}`);
 

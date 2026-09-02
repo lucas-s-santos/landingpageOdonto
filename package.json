@@ -13,7 +13,10 @@
     "preview": "astro preview",
     "astro": "astro",
     "check": "astro check",
-    "shot": "astro build && node scripts/screenshot.mjs"
+    "shot": "astro build && node scripts/screenshot.mjs",
+    "conformidade": "astro build && node scripts/conformidade.mjs",
+    "a11y": "astro build && node scripts/acessibilidade.mjs",
+    "verificar": "astro build && node scripts/conformidade.mjs && node scripts/acessibilidade.mjs && node scripts/screenshot.mjs"
   },
   "dependencies": {
     "astro": "^7.2.10",

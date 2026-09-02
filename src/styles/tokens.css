@@ -281,3 +281,55 @@
     filter: saturate(0.82) hue-rotate(-6deg) brightness(1.04);
   }
 }
+
+/* ==========================================================================
+   CTA — um único botão em toda a página: "Agendar avaliação".
+   Mesmo verbo, mesma cor, sempre. Sem CTA secundário competindo.
+
+   Sem seta, sem raio, sem sombra. O affordance é a cor sólida.
+   O ímã (MOTION.md seção 2) é passo 4; o atributo data-ima já está na marcação.
+   ========================================================================== */
+
+@layer components {
+  .cta {
+    display: inline-block;
+    background: var(--color-eucalipto);
+    color: var(--color-osso);
+    font-weight: 500;
+    padding: 0.9rem 1.6rem;
+    border: 1px solid var(--color-eucalipto);
+    text-decoration: none;
+    cursor: pointer;
+    /* alvo de toque de 44px mesmo com fonte pequena */
+    min-height: 44px;
+  }
+
+  .cta:hover {
+    background: color-mix(in srgb, var(--color-eucalipto) 88%, black);
+    border-color: color-mix(in srgb, var(--color-eucalipto) 88%, black);
+  }
+
+  /* variante do header: mesma cor, contorno em vez de preenchimento, para o
+     botão do topo não competir de peso com o da abertura */
+  .cta--vazado {
+    background: transparent;
+    color: var(--color-eucalipto);
+  }
+
+  .cta--vazado:hover {
+    background: var(--color-eucalipto);
+    color: var(--color-osso);
+  }
+
+  /* sobre fundo eucalipto o preenchimento inverte, senão o botão some */
+  .cta--claro {
+    background: var(--color-osso);
+    color: var(--color-tinta);
+    border-color: var(--color-osso);
+  }
+
+  .cta--claro:hover {
+    background: color-mix(in srgb, var(--color-osso) 88%, black);
+    border-color: color-mix(in srgb, var(--color-osso) 88%, black);
+  }
+}

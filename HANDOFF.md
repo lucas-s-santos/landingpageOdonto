@@ -1,6 +1,6 @@
 # HANDOFF — estado do projeto e como retomar
 
-Atualizado em 01/09/2026, no fim da sessão do passo 2.
+Atualizado em 01/09/2026, no fim da sessão do passo 3.
 Leia este arquivo primeiro. Ele diz onde o projeto parou e o que fazer em seguida.
 
 ---
@@ -11,8 +11,8 @@ Leia este arquivo primeiro. Ele diz onde o projeto parou e o que fazer em seguid
 |---|---|
 | 1. Plano de design | **Feito e aprovado.** Está em `PLANO-DESIGN.md` |
 | 2. Scaffold Astro + Tailwind + tokens + fontes | **Feito.** Build limpo, `astro check` sem erros |
-| 3. Estrutura semântica com copy real, sem movimento | **é o próximo** |
-| 4. Camada de movimento (`MOTION.md`) | não começou |
+| 3. Estrutura semântica com copy real, sem movimento | **Feito.** 9 seções, conformidade e a11y verificadas |
+| 4. Camada de movimento (`MOTION.md`) | **é o próximo** |
 | 5. Cena 3D do dente sob demanda | não começou |
 | 6. Screenshot 1440/390 + autocrítica contra a seção 9 | não começou |
 
@@ -31,15 +31,66 @@ Leia este arquivo primeiro. Ele diz onde o projeto parou e o que fazer em seguid
   tipográfica, o ritmo vertical, a grade e as regras de base (sombra zero, raio zero,
   foco visível, `prefers-reduced-motion`)
 - `src/layouts/Base.astro` — head, canonical, preload só do display
-- `src/pages/index.astro` — **página de verificação de tokens, não é a landing page.**
-  O passo 3 substitui o conteúdo dela.
-- `scripts/screenshot.mjs` + `npm run shot` — fotografa em 1440 e 390 e mede estouro
-  horizontal em 360px. É a ferramenta do passo 6, já pronta.
 - `_origem/` — material bruto (OBJ, GLB sem Draco, MP4 de render) fora do build
 
-**Verificado na tela, não só no build:** as quatro fontes carregam do arquivo local,
-`background` sai em `rgb(239,237,230)`, texto em `rgb(28,33,31)`, abertura em 80px peso
-500 Cabinet Grotesk, e o estouro horizontal é 0px tanto em 390px quanto em 360px.
+### O que o passo 3 entregou
+
+As 9 seções do fluxo do BRIEF, cada uma em um componente próprio em
+`src/components/`, com toda a copy em `src/data/conteudo.ts`.
+
+Decisões de implementação que valem registro:
+
+- **Tratamentos usam `<details>/<summary>`, não `<button aria-expanded>`.** O
+  `MOTION.md` pede button, mas `<summary>` já *é* um botão para o navegador e
+  expõe `aria-expanded` sozinho — com a vantagem de abrir e fechar sem uma
+  linha de JavaScript. O passo 4 anima interceptando o evento `toggle`, sem
+  trocar a marcação.
+- **A abertura tem as linhas do título explícitas** em `ABERTURA.tituloLinhas`.
+  Duas razões: a quebra é editorial, e o passo 4 precisa de um elemento por
+  linha para a máscara.
+- **A invasão do título sobre o vídeo é o vídeo que nasce em 46%**, passando
+  por baixo do texto, com a borda esquerda dissolvida por máscara linear. O
+  texto continua nos 60% da esquerda. Medido: 172px de sobreposição, e o pior
+  fundo sob a primeira linha dá **10,6:1** contra `--tinta`.
+- **A seção 3 é a versão estática e completa da prancha**, não um rascunho: é
+  o que fica visível sob `prefers-reduced-motion` e enquanto o WebGL do passo
+  5 carrega. A imagem é um frame do `water-droplet-sliding` recortado em 4:5.
+  Os fios de 1px até os rótulos **não existem ainda** — dependem de posição
+  calculada em tempo de execução (`vector.project`), então nascem no passo 5.
+- **O formulário não é um `<form>` com action.** Nada é enviado a servidor
+  nenhum. Sem JavaScript o botão já é um link para o WhatsApp com mensagem
+  genérica; o script só enriquece o texto. Enquanto `CLINICA.whatsapp` for
+  `[PREENCHER]`, aparece um aviso no lugar de um botão quebrado.
+
+Ferramentas novas, todas com script no `package.json`:
+
+- `npm run conformidade` — varre o HTML **renderizado** contra a CFO-196:
+  preço, superlativo, garantia, depoimento, antes/depois, CRO preenchido. Sai
+  com código 1 se achar. Serve para CI.
+- `npm run a11y` — hierarquia de títulos, alt, ordem de Tab com foco visível,
+  accordion por Enter, JSON-LD parseando, `lang`.
+- `npm run verificar` — roda os três mais os screenshots. **É o que tem que
+  passar antes de dizer que um passo acabou.**
+
+**Medido, não estimado:** 16 paradas de Tab, todas com foco visível de 2px ·
+accordion alterna com Enter · JSON-LD válido · zero estouro horizontal em
+390px e em 360px · 68,5 KB na primeira carga (27,1 HTML + 21,4 CSS + 20,0 da
+fonte em preload), antes de vídeo e imagem · Three.js ausente do bundle ·
+`astro check` sem erros · conformidade CFO-196 aprovada com 23 `[PREENCHER]`.
+
+### Correções de segurança feitas nesta sessão
+
+- `Base.astro`: `JSON.stringify` não escapa `</script>`. Os campos do JSON-LD
+  são `[PREENCHER]` hoje, mas quem vai preenchê-los é outra pessoa colando
+  dados do cliente. `<` agora vira `<` antes de entrar no `set:html`.
+- `scripts/screenshot.mjs`: o servidor estático local resolvia `..` e servia
+  arquivo de fora de `dist/`. Passou a validar que o caminho fica dentro da
+  raiz. É ferramenta local e efêmera, mas era traversal de verdade.
+
+O formulário do WhatsApp foi auditado e está correto: o texto vai pela URL
+sempre via `URLSearchParams`, que escapa sozinho, e o destino é construído a
+partir do link renderizado no servidor — o script não consegue apontar o botão
+para outro domínio, nem para `javascript:`.
 
 ---
 
@@ -146,38 +197,55 @@ decidido só por descrição escrita, que é o canal mais fraco.
 
 ---
 
-## Parte 3 — Passo 3: estrutura semântica (o próximo)
+## Parte 3 — Passo 4: movimento (o próximo)
 
-O scaffold está pronto e commitado. O passo 3 escreve as 9 seções com copy real,
-**sem nenhum movimento ainda**. O `CLAUDE.md` é explícito sobre não pular isto: página
-que nasce animada nasce quebrada no leitor de tela.
+O passo 3 está pronto e commitado. A página tem as 9 seções com copy real e
+funciona inteira sem JavaScript de animação.
+
+### Antes de começar o passo 4: instalar as skills
+
+Elas nunca foram instaladas — não existe `.claude/skills` no projeto nem no
+perfil. O `SETUP.md` seção 3 pede duas, e as duas são de movimento, então é
+agora que importam:
 
 ```bash
-npm install          # se for outra máquina
-npm run dev          # http://localhost:4321
-npm run shot         # build + screenshot em 1440 e 390 + checagem de estouro
+npx skills add emilkowalski/skill      # linguagem de animação, autor do Sonner/Vaul
+npx skills add greensock/gsap-skills   # material do GSAP
 ```
 
-O que o passo 3 entrega:
+Abra o README de cada uma antes de instalar. Skill mal escrita entra no
+contexto e piora o resultado.
 
-- [ ] `src/pages/index.astro` reescrito com as 9 seções do fluxo (BRIEF seção 4), na
-      ordem da objeção que cada uma vence
-- [ ] copy real em pt-BR, sentence case, voz ativa, frases curtas — e todo dado do
-      cliente como `[PREENCHER]`
-- [ ] header com o CTA (decidido em 2.3) e a barra fixa de mobile aparecendo após a
-      seção 3
-- [ ] os três vídeos em bloco contido, `autoplay muted loop playsinline` + poster,
-      com a classe `video-calibrado` (ver 4.2 sobre a correção de cor)
-- [ ] tratamentos como `<button>` de verdade com `aria-expanded` — a expansão tem que
-      funcionar por teclado antes de existir animação
-- [ ] seção 7 com a sequência numerada e durações reais em `<time>`
-- [ ] rodapé com responsável técnico e CRO como `[PREENCHER]`, e link externo ao
-      perfil do Google (link, nunca widget de avaliação republicada)
-- [ ] JSON-LD `Dentist` com os campos marcados `[PREENCHER]`
-- [ ] navegação inteira por Tab funcionando, foco visível em tudo
+### O que o passo 4 entrega (ver `MOTION.md`)
 
-**Ainda não:** GSAP, Lenis, Three.js, cursor customizado, ímã. Isso é passo 4 e 5.
-As dependências já estão instaladas, mas não devem ser importadas ainda.
+- [ ] base: Lenis com `lerp: 0.09`, `syncTouch: false`, dentro de `gsap.matchMedia()`
+- [ ] cursor com lerp 0.12, desligado abaixo de 900px e sob `pointer: coarse`
+- [ ] ímã (`RAIO 90`, `FORCA 0.32`) **só** no CTA e nos hotspots — os elementos
+      já estão marcados com `data-ima`
+- [ ] abertura: máscara de linha no título. As linhas já são elementos próprios
+      (`.linha` dentro do h1), então é só envolver em `overflow: hidden`
+- [ ] máscara de linha nos títulos de seção, e **em mais nada**
+- [ ] accordion: animar a altura interceptando o evento `toggle` do `<details>`,
+      sem trocar a marcação
+- [ ] parallax só em dois lugares: vídeo da abertura e `[data-parallax="0.15"]`
+      da textura de esmalte, que já está no HTML
+- [ ] `prefers-reduced-motion`: página completa e imóvel
+
+**Proibido:** fade-and-slide-up genérico em seção que entra na viewport. É o
+tell número um, e o `MOTION.md` abre com isso.
+
+### Comandos de verificação (já prontos)
+
+```bash
+npm run dev            # http://localhost:4321
+npm run verificar      # build + CFO-196 + acessibilidade + screenshots
+npm run conformidade   # só a varredura legal
+npm run a11y           # só teclado, foco e títulos
+npm run shot           # só os screenshots em 1440 e 390
+npx astro check        # tipos
+```
+
+`npm run verificar` é o que deve passar antes de dizer que um passo acabou.
 
 ---
 

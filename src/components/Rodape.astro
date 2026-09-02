@@ -1,0 +1,70 @@
+---
+import { CLINICA } from '../data/conteudo';
+---
+
+<!-- SEÇÃO 9 — localização, CRO, horário.
+     Nome do responsável técnico e número de CRO no rodapé são OBRIGATÓRIOS
+     pela Resolução CFO-196/2019.
+     O link do Google é link externo: as avaliações ficam lá e não são
+     republicadas aqui, que é o que a resolução proíbe. -->
+<footer class="rodape">
+  <div class="grade">
+    <div class="col-span-full md:col-span-4">
+      <p class="font-display text-tratamento font-medium">{CLINICA.nome}</p>
+      <p class="text-rodape mt-4">
+        Responsável técnico:<br />
+        {CLINICA.responsavelTecnico}<br />
+        <span data-numero>{CLINICA.croResponsavel}</span>
+      </p>
+    </div>
+
+    <div class="col-span-full mt-8 md:col-span-4 md:mt-0">
+      <h2 class="text-rotulo font-medium">Onde estamos</h2>
+      <address class="text-rodape mt-3 not-italic">
+        {CLINICA.endereco}<br />
+        {CLINICA.cidade} — {CLINICA.uf}<br />
+        <span data-numero>{CLINICA.cep}</span>
+      </address>
+      <p class="text-rodape mt-3">
+        <a href={`tel:${CLINICA.telefone}`}>{CLINICA.telefone}</a>
+      </p>
+    </div>
+
+    <div class="col-span-full mt-8 md:col-span-3 md:col-start-10 md:mt-0">
+      <h2 class="text-rotulo font-medium">Horário</h2>
+      <p class="text-rodape mt-3">{CLINICA.horario}</p>
+      <p class="text-rodape mt-6">
+        <a href={CLINICA.perfilGoogle} target="_blank" rel="noopener noreferrer">
+          Ver avaliações no Google
+        </a>
+      </p>
+    </div>
+  </div>
+
+  <div class="grade mt-16">
+    <p class="col-span-full text-rotulo opacity-60">
+      Este site tem finalidade informativa e não substitui consulta odontológica.
+    </p>
+  </div>
+</footer>
+
+<style>
+  .rodape {
+    border-top: 1px solid var(--color-linha);
+    margin-top: var(--spacing-r-medio);
+    padding-block: var(--spacing-r-curto);
+    /* espaço para a barra fixa do mobile não cobrir o CRO */
+    padding-bottom: calc(var(--spacing-r-curto) + 4.5rem);
+  }
+
+  @media (min-width: 900px) {
+    .rodape {
+      padding-bottom: var(--spacing-r-curto);
+    }
+  }
+
+  .rodape a {
+    color: inherit;
+    text-underline-offset: 4px;
+  }
+</style>

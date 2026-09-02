@@ -1,0 +1,41 @@
+---
+// Faixa de transição entre as seções 4 e 5. Bloco CONTIDO, nunca full-bleed:
+// 720p não aguenta monitor grande (BRIEF seção 7).
+// O parallax de 0.15 é passo 4 — o atributo já fica marcado.
+---
+
+<div class="textura" data-parallax="0.15" aria-hidden="true">
+  <video
+    class="video-calibrado"
+    poster="/video/texture-enamel-poster.jpg"
+    autoplay
+    muted
+    loop
+    playsinline
+    preload="none"
+    tabindex="-1"
+  >
+    <source src="/video/texture-enamel-loop.webm" type="video/webm" />
+    <source src="/video/texture-enamel-loop.mp4" type="video/mp4" />
+  </video>
+</div>
+
+<style>
+  .textura {
+    margin-inline: var(--spacing-margem);
+    margin-top: var(--spacing-r-encosta);
+    overflow: hidden;
+  }
+
+  .textura video {
+    width: 100%;
+    height: 30vh;
+    object-fit: cover;
+  }
+
+  @media (min-width: 900px) {
+    .textura video {
+      height: 46vh;
+    }
+  }
+</style>

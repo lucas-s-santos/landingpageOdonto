@@ -1,0 +1,78 @@
+---
+import { PRIMEIRA_CONSULTA } from '../data/conteudo';
+
+const total = PRIMEIRA_CONSULTA.etapas.reduce((s, e) => s + e.minutos, 0);
+---
+
+{/*
+  SEÇÃO 7 — vence "vai doer? quanto tempo? vão me cobrar?"
+  A seção mais subestimada e a que mais converte, segundo o BRIEF.
+
+  A numeração aqui é legítima: o conteúdo É uma sequência cronológica. É a
+  única lista numerada da página — o item 13 da seção 9 proíbe 01/02/03 em
+  conteúdo que não é sequência.
+*/}
+<section class="grade mt-r-respiro" aria-labelledby="consulta-titulo">
+  <div class="col-span-full md:col-span-8">
+    <h2 id="consulta-titulo" class="text-secao">{PRIMEIRA_CONSULTA.titulo}</h2>
+    <p class="max-w-corpo mt-6">{PRIMEIRA_CONSULTA.intro}</p>
+  </div>
+
+  <ol class="etapas col-span-full mt-12 md:col-span-10">
+    {
+      PRIMEIRA_CONSULTA.etapas.map((etapa, i) => (
+        <li class="etapa">
+          <span class="etapa__numero text-rotulo" data-numero aria-hidden="true">
+            {i + 1}
+          </span>
+          <span class="etapa__texto">{etapa.texto}</span>
+          <time class="etapa__tempo text-rotulo" datetime={`PT${etapa.minutos}M`}>
+            cerca de {etapa.minutos} min
+          </time>
+        </li>
+      ))
+    }
+  </ol>
+
+  <p class="col-span-full text-rotulo mt-6 opacity-75 md:col-span-10">
+    Somando, <time datetime={`PT${total}M`}>cerca de {total} minutos</time>. Se você chegar
+    com dor, a ordem muda: a gente cuida da dor primeiro.
+  </p>
+</section>
+
+<style>
+  .etapas {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .etapa {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    padding-block: 1.1rem;
+    border-top: 1px solid var(--color-linha);
+  }
+
+  .etapa:last-child {
+    border-bottom: 1px solid var(--color-linha);
+  }
+
+  .etapa__numero {
+    flex: none;
+    width: 1.5rem;
+    opacity: 0.55;
+  }
+
+  .etapa__texto {
+    flex: 1;
+  }
+
+  .etapa__tempo {
+    flex: none;
+    opacity: 0.75;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+</style>

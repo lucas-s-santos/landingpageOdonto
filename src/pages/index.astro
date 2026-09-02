@@ -1,196 +1,48 @@
 ---
 import Base from '../layouts/Base.astro';
+import Cabecalho from '../components/Cabecalho.astro';
+import Abertura from '../components/Abertura.astro';
+import ComoAtendemos from '../components/ComoAtendemos.astro';
+import Anatomia from '../components/Anatomia.astro';
+import Tratamentos from '../components/Tratamentos.astro';
+import TexturaEsmalte from '../components/TexturaEsmalte.astro';
+import QuemAtende from '../components/QuemAtende.astro';
+import Estrutura from '../components/Estrutura.astro';
+import PrimeiraConsulta from '../components/PrimeiraConsulta.astro';
+import Agendar from '../components/Agendar.astro';
+import Rodape from '../components/Rodape.astro';
+import BarraFixa from '../components/BarraFixa.astro';
+import { CLINICA } from '../data/conteudo';
 
-// PASSO 2 — página de verificação dos tokens.
-// O passo 3 substitui isto pela estrutura semântica real das 9 seções.
-//
-// Ela usa as classes utilitárias geradas pelo @theme de propósito: é o que
-// prova que a escala tipográfica, o ritmo vertical e a paleta chegaram ao
-// Tailwind, e não só ao CSS. Estilo inline aqui esconderia erro de tema.
-
-const paleta = [
-  { nome: '--osso', hex: '#EFEDE6', papel: 'fundo padrão da página', teto: '~70% da área' },
-  { nome: '--tinta', hex: '#1C211F', papel: 'todo o texto sobre osso', teto: '—' },
-  { nome: '--eucalipto', hex: '#33473F', papel: 'fundo de 2 seções + CTA', teto: '~22%' },
-  { nome: '--carvalho', hex: '#C6A47E', papel: 'só superfície fotográfica', teto: '~5%' },
-  { nome: '--linha', hex: '#C8CCC4', papel: 'fio de 1px', teto: 'sempre 1px' },
-  { nome: '--ambar', hex: '#B8862F', papel: 'só o hotspot ativo da seção 3', teto: '~6 pontos' },
-];
-
-const contrastes = [
-  { par: 'tinta sobre osso', razao: '13,6:1', veredito: 'AAA' },
-  { par: 'eucalipto sobre osso', razao: '8,6:1', veredito: 'AAA' },
-  { par: 'osso sobre eucalipto', razao: '8,6:1', veredito: 'AAA' },
-  { par: 'tinta sobre carvalho', razao: '6,9:1', veredito: 'AAA' },
-  { par: 'linha sobre eucalipto', razao: '6,2:1', veredito: 'fio visível no escuro' },
-  { par: 'âmbar sobre eucalipto', razao: '3,1:1', veredito: 'gráfico só, nunca texto' },
-  { par: 'carvalho sobre eucalipto', razao: '4,3:1', veredito: 'reprova texto pequeno' },
-];
-
-const ritmo = [
-  ['abertura → como atendemos', 'r-curto', '96px'],
-  ['como atendemos → anatomia', 'r-maximo', '208px'],
-  ['anatomia → tratamentos', 'r-colapso', '56px'],
-  ['tratamentos → textura', 'r-encosta', '0px'],
-  ['textura → quem atende', 'r-amplo', '152px'],
-  ['quem atende → estrutura', 'r-medio', '112px'],
-  ['estrutura → 1ª consulta', 'r-respiro', '184px'],
-  ['1ª consulta → agendar', 'r-longo', '128px'],
-];
+/**
+ * PASSO 3 — estrutura semântica com copy real, ainda sem movimento.
+ *
+ * A ordem das seções é a ordem da objeção que cada uma vence (BRIEF seção 4).
+ * Não reordenar sem reler aquela tabela: a seção 7 vem depois da 6 porque
+ * ninguém se importa com o roteiro da consulta antes de confiar no lugar.
+ *
+ * NÃO IMPORTAR AQUI, ainda: GSAP, Lenis, Three.js. Passos 4 e 5.
+ */
 ---
 
 <Base
-  titulo="[PREENCHER nome da clínica] — verificação de tokens"
-  descricao="Página interna do passo 2. Não é a landing page."
+  titulo={`${CLINICA.nome} — dentista em ${CLINICA.cidade}`}
+  descricao="Avaliação odontológica com explicação do que foi encontrado, por escrito. Atendimento em [PREENCHER cidade]."
 >
-  <main class="grade pt-r-curto">
-    <div class="col-span-full max-w-corpo">
-      <p class="text-rotulo text-eucalipto">Passo 2 de 6 · esta página não é a landing page</p>
-      <h1 class="text-abertura mt-6 mb-5">Antes de tratar, a gente explica o que está acontecendo.</h1>
-      <p class="max-w-corpo">
-        Você vai entender o seu caso antes de decidir qualquer coisa. Inclusive antes de
-        decidir se vai tratar aqui.
-      </p>
-    </div>
+  <Cabecalho />
 
-    <hr class="fio col-span-full mt-r-curto" />
-
-    <!-- escala tipográfica -->
-    <section class="col-span-full mt-r-medio">
-      <h2 class="text-secao">Escala tipográfica</h2>
-      <div class="mt-8 grid gap-5">
-        <p class="font-display text-secao">Cabinet Grotesk 500 — título de seção</p>
-        <p class="font-texto text-tratamento font-medium">Switzer 500 — nome de tratamento</p>
-        <p class="max-w-corpo">
-          Switzer 400 — corpo em 1.0625rem com entrelinha 1.6 e medida de 62ch. É neste
-          tamanho que quase toda a página vive. Se este parágrafo estiver confortável de
-          ler no celular à noite, a escala está certa.
-        </p>
-        <p class="max-w-prancha text-corpo-estreito">
-          Switzer 400 estreito — 1rem com entrelinha 1.62 e medida de 54ch, para o texto
-          que acompanha a prancha anatômica da seção 3.
-        </p>
-        <p class="text-rotulo font-medium">Switzer 500 — rótulo da prancha, 0.875rem</p>
-        <p class="text-rodape">
-          Switzer 400 — rodapé e CRO, 0.9375rem. CRO-MG <span data-numero>[PREENCHER]</span>
-        </p>
-      </div>
-    </section>
-
-    <!-- paleta -->
-    <section class="col-span-full mt-r-medio">
-      <h2 class="text-secao">Paleta</h2>
-      <ul class="mt-8 list-none p-0">
-        {
-          paleta.map((c) => (
-            <li class="flex flex-wrap items-baseline gap-x-4 gap-y-1 border-t border-linha py-3.5">
-              <span
-                class="border-linha size-10 flex-none self-center border"
-                style={`background:${c.hex}`}
-                aria-hidden="true"
-              />
-              <span class="w-32 flex-none font-medium">{c.nome}</span>
-              <span class="w-20 flex-none" data-numero>
-                {c.hex}
-              </span>
-              <span class="min-w-48 flex-1">{c.papel}</span>
-              <span class="text-eucalipto flex-none">{c.teto}</span>
-            </li>
-          ))
-        }
-      </ul>
-    </section>
-
-    <!-- contraste -->
-    <section class="col-span-full mt-r-medio">
-      <h2 class="text-secao">Contraste medido</h2>
-      <ul class="max-w-corpo mt-8 list-none p-0">
-        {
-          contrastes.map((c) => (
-            <li class="flex flex-wrap gap-x-4 gap-y-1 border-t border-linha py-2.5">
-              <span class="min-w-48 flex-1">{c.par}</span>
-              <span class="w-18 flex-none font-medium" data-numero>
-                {c.razao}
-              </span>
-              <span class="text-eucalipto w-48 flex-none">{c.veredito}</span>
-            </li>
-          ))
-        }
-      </ul>
-    </section>
-
-    <!-- ritmo vertical -->
-    <section class="col-span-full mt-r-medio">
-      <h2 class="text-secao">Ritmo vertical</h2>
-      <p class="max-w-corpo mt-4 text-rotulo">
-        Deliberadamente irregular. Espaçamento igual entre seções é um dos tells de
-        página gerada — as barras abaixo têm a altura real de cada intervalo.
-      </p>
-      <ul class="max-w-corpo mt-8 list-none p-0">
-        {
-          ritmo.map(([onde, token, valor]) => (
-            <li class="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-linha py-2.5">
-              <span class="min-w-48 flex-1">{onde}</span>
-              <span class="text-eucalipto w-28 flex-none text-rotulo">{token}</span>
-              <span class="w-14 flex-none font-medium" data-numero>
-                {valor}
-              </span>
-              <span
-                class="bg-eucalipto h-2 flex-none"
-                style={`width:${parseInt(valor, 10) / 2}px`}
-                aria-hidden="true"
-              />
-            </li>
-          ))
-        }
-      </ul>
-    </section>
+  <main id="conteudo">
+    <Abertura />
+    <ComoAtendemos />
+    <Anatomia />
+    <Tratamentos />
+    <TexturaEsmalte />
+    <QuemAtende />
+    <Estrutura />
+    <PrimeiraConsulta />
+    <Agendar />
   </main>
 
-  <!-- fundo escuro: prova osso sobre eucalipto, o hotspot âmbar e o foco claro -->
-  <section class="grade sobre-escuro bg-eucalipto text-osso mt-r-maximo py-r-respiro">
-    <div class="col-span-full max-w-corpo">
-      <h2 class="text-secao">Fundo eucalipto</h2>
-      <p class="mt-4">
-        Osso sobre eucalipto dá 8,6:1. É assim que a seção do dente e a de agendar vão se
-        comportar.
-      </p>
-      <p class="text-osso-suave mt-3">
-        Texto secundário em osso a 78%, que dá 5,9:1. Carvalho sobre eucalipto daria 4,3:1
-        e reprovaria — por isso não existe texto em carvalho na página.
-      </p>
-
-      <p class="mt-8 flex items-center gap-3">
-        <span class="bg-ambar size-2.5 flex-none rounded-full" aria-hidden="true"></span>
-        <span class="text-rotulo font-medium">hotspot ativo — o único âmbar da página inteira</span>
-      </p>
-
-      <p class="mt-8">
-        <button type="button" class="bg-osso text-tinta cursor-pointer border-0 px-6 py-3.5 font-medium">
-          Agendar avaliação
-        </button>
-      </p>
-      <p class="text-rotulo text-osso-suave mt-3">
-        Tab até o botão para conferir o foco claro. Sem seta, sem raio, sem sombra.
-      </p>
-    </div>
-  </section>
-
-  <section class="grade py-r-medio">
-    <div class="col-span-full max-w-corpo">
-      <h2 class="text-secao">Campo de formulário</h2>
-      <p class="text-rotulo mt-4">
-        Único lugar da página com raio: 2px. Label sempre visível, nunca placeholder
-        fazendo papel de label.
-      </p>
-      <p class="mt-6 grid max-w-sm gap-1.5">
-        <label for="nome" class="text-rotulo font-medium">Nome</label>
-        <input
-          id="nome"
-          type="text"
-          class="border-linha rounded-campo border bg-transparent px-3 py-2.5"
-        />
-      </p>
-    </div>
-  </section>
+  <Rodape />
+  <BarraFixa />
 </Base>

@@ -1,0 +1,119 @@
+---
+import { ABERTURA, CTA } from '../data/conteudo';
+---
+
+<!-- SEÇÃO 1 — vence "é clínica séria ou é fundo de quintal?"
+     Assimétrica: 60% de texto à esquerda, vídeo sangrando pela direita.
+     No mobile o vídeo vai ACIMA do título, nunca atrás: sobrepor texto a
+     720p em movimento em 390px abre mão do contraste AA. -->
+<section class="abertura" aria-labelledby="abertura-titulo">
+  <div class="abertura__video">
+    <video
+      class="video-calibrado"
+      poster="/video/hero-molar-poster.jpg"
+      autoplay
+      muted
+      loop
+      playsinline
+      preload="metadata"
+      aria-hidden="true"
+      tabindex="-1"
+    >
+      <source src="/video/hero-molar-loop.webm" type="video/webm" />
+      <source src="/video/hero-molar-loop.mp4" type="video/mp4" />
+    </video>
+  </div>
+
+  <div class="abertura__texto">
+    <h1 id="abertura-titulo" class="text-abertura">
+      {
+        ABERTURA.tituloLinhas.map((linha) => (
+          <span class="linha">{linha}</span>
+        ))
+      }
+    </h1>
+    <p class="abertura__apoio max-w-corpo mt-8">{ABERTURA.apoio}</p>
+    <p class="mt-10">
+      <a href="#agendar" class="cta" data-ima>{CTA}</a>
+    </p>
+  </div>
+</section>
+
+<style>
+  .abertura {
+    display: grid;
+    gap: 2rem;
+    padding-inline: var(--spacing-margem);
+    padding-block: 2rem 0;
+  }
+
+  .abertura__video video {
+    width: 100%;
+    height: clamp(220px, 42vh, 340px);
+    object-fit: cover;
+  }
+
+  /* Cada linha do título é um bloco próprio. No mobile ela ainda pode
+     quebrar sozinha se não couber — o que está fixo é onde a linha começa,
+     não uma promessa de caber em uma tira só. */
+  .abertura__texto h1 .linha {
+    display: block;
+  }
+
+  @media (min-width: 900px) {
+    .abertura {
+      grid-template-columns: minmax(0, 63fr) minmax(0, 37fr);
+      align-items: center;
+      gap: 0;
+      padding-right: 0; /* o vídeo sangra pela direita */
+      padding-block: 3rem 0;
+    }
+
+    .abertura__video {
+      /* O vídeo não fica confinado na coluna 2: ele começa antes e passa
+         POR BAIXO do texto. O bloco de texto continua ocupando os 60% da
+         esquerda que o BRIEF pede — o que muda é onde o vídeo nasce.
+         É isso que dá invasão de verdade em vez de dois blocos encostados. */
+      grid-column: 1 / -1;
+      grid-row: 1;
+      margin-left: 46%;
+    }
+
+    .abertura__video video {
+      height: 78vh;
+      max-height: 720px;
+
+      /* A borda esquerda do vídeo se dissolve no fundo da página. É isso que
+         permite o título invadir sem perder contraste: onde o texto passa por
+         cima, o vídeo já está quase todo em --osso.
+         Preferido a uma caixa sólida atrás de cada linha, que obrigaria a
+         afrouxar a entrelinha de 0.98 e mataria o aperto do display. */
+      -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 40%);
+      mask-image: linear-gradient(to right, transparent 0%, #000 40%);
+    }
+
+    .abertura__texto {
+      grid-column: 1;
+      grid-row: 1;
+      z-index: 1;
+      /* O texto fica nos 60% da esquerda, como o BRIEF pede. Quem invade
+         quem: o vídeo nasce em 46% e passa por baixo; o título termina
+         dentro da faixa dissolvida da máscara. Medido: o pior fundo sob a
+         primeira linha dá mais de 9:1 contra --tinta. */
+      margin-right: 0;
+    }
+
+    .abertura__texto h1 {
+      /* Sem balance: as linhas são definidas na copy, não pelo navegador.
+         O valor é `wrap`, não `normal` — `normal` não existe em text-wrap e
+         a declaração inteira seria descartada, deixando o balance de pé. */
+      text-wrap: wrap;
+    }
+
+    .abertura__apoio {
+      /* o parágrafo de apoio NÃO invade: ele é texto pequeno e precisa dos
+         13,6:1 inteiros. Só o display, que é grande, entra na zona do vídeo. */
+      max-width: 46ch;
+    }
+  }
+</style>

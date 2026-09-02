@@ -1,0 +1,16 @@
+---
+import { CLINICA, CTA } from '../data/conteudo';
+---
+
+<!-- Header estático, não fixo. Sem fundo próprio, sem borda: ele é parte da
+     folha, não uma barra por cima dela. O CTA aqui é o MESMO CTA da página —
+     mesmo verbo, mesma cor, mesmo destino. Não é CTA secundário. -->
+<header class="grade items-baseline pt-8 pb-4">
+  <p class="col-span-8 font-display text-tratamento font-medium sm:col-span-6">
+    {CLINICA.nome}
+  </p>
+
+  <p class="col-span-4 justify-self-end sm:col-span-6">
+    <a href="#agendar" class="cta cta--vazado">{CTA}</a>
+  </p>
+</header>

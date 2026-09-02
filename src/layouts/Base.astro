@@ -1,5 +1,6 @@
 ---
 import '../styles/tokens.css';
+import { CLINICA } from '../data/conteudo';
 
 interface Props {
   titulo: string;
@@ -8,6 +9,29 @@ interface Props {
 
 const { titulo, descricao } = Astro.props;
 const canonical = new URL(Astro.url.pathname, Astro.site);
+
+/**
+ * JSON-LD Dentist. Os campos com [PREENCHER] têm que ser trocados por dado
+ * real antes de publicar — dado inventado aqui é pior do que campo ausente,
+ * porque vai para o Google como se fosse verdade.
+ */
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Dentist',
+  name: CLINICA.nome,
+  url: canonical.origin,
+  telephone: CLINICA.telefone,
+  address: {
+    '@type': 'PostalAddress',
+    streetAddress: CLINICA.endereco,
+    addressLocality: CLINICA.cidade,
+    addressRegion: CLINICA.uf,
+    postalCode: CLINICA.cep,
+    addressCountry: 'BR',
+  },
+  openingHours: CLINICA.horario,
+  areaServed: CLINICA.cidade,
+};
 ---
 
 <!doctype html>
@@ -18,6 +42,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     <title>{titulo}</title>
     <meta name="description" content={descricao} />
     <link rel="canonical" href={canonical} />
+    <meta name="theme-color" content="#efede6" />
 
     {/* Só o display entra em preload: é a fonte do LCP. Pré-carregar as
         quatro competiria com o vídeo da abertura pela banda inicial. */}
@@ -35,10 +60,42 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     <meta property="og:url" content={canonical} />
     <meta property="og:locale" content="pt_BR" />
 
+    {/*
+      `JSON.stringify` não escapa `</script>`. Se algum campo de CLINICA
+      contiver essa sequência, o bloco fecha cedo e o resto vira HTML
+      executável. Hoje os campos são [PREENCHER] escritos por nós, mas quem
+      vai preencher é outra pessoa colando nome, endereço e link do cliente.
+      Escapar `<` custa uma linha e fecha a classe de bug inteira.
+    */}
+    <script
+      type="application/ld+json"
+      is:inline
+      set:html={JSON.stringify(jsonLd).replace(/</g, '\\u003c')}
+    />
+
     <slot name="head" />
   </head>
 
   <body>
+    <a href="#conteudo" class="pular-para-conteudo">Pular para o conteúdo</a>
     <slot />
   </body>
 </html>
+
+<style>
+  /* Fica fora da tela até receber foco. Primeira parada do Tab na página. */
+  .pular-para-conteudo {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    z-index: 100;
+    background: var(--color-tinta);
+    color: var(--color-osso);
+    padding: 0.75rem 1.25rem;
+    text-decoration: none;
+  }
+
+  .pular-para-conteudo:focus {
+    left: 0;
+  }
+</style>

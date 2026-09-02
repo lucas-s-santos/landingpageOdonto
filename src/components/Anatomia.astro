@@ -1,0 +1,163 @@
+---
+import { ANATOMIA, TRATAMENTOS } from '../data/conteudo';
+
+const nomeDoTratamento = (id: string) => TRATAMENTOS.find((t) => t.id === id)?.nome ?? '';
+---
+
+{/*
+  SEÇÃO 3 — vence "não entendo nada, vão me empurrar coisa".
+  É o elemento-assinatura da página: prancha anatômica.
+
+  ESTE É O PASSO 3. Não há Three.js aqui e não pode haver: a cena 3D é o
+  passo 5 e entra por import() dinâmico. O que existe agora é a versão
+  estática e completa — e ela não é um rascunho descartável: é exatamente
+  o que fica visível sob `prefers-reduced-motion` e enquanto o WebGL carrega.
+
+  A ligação fio → rótulo é feita por SVG sobreposto. No passo 5 as pontas
+  dos fios passam a ser reposicionadas a cada frame por vector.project(camera).
+*/}
+<section id="anatomia" class="anatomia sobre-escuro" aria-labelledby="anatomia-titulo">
+  <div class="grade">
+    <div class="col-span-full md:col-span-7">
+      <h2 id="anatomia-titulo" class="text-secao">{ANATOMIA.titulo}</h2>
+      <p class="max-w-prancha mt-6">{ANATOMIA.intro}</p>
+    </div>
+  </div>
+
+  <div class="grade mt-14">
+    {/* a prancha */}
+    <figure class="prancha col-span-full md:col-span-6 md:col-start-2">
+      <div class="prancha__quadro">
+        <div class="prancha__imagem">
+          <picture>
+            <source srcset="/image/anatomia-molar.webp" type="image/webp" />
+            <img
+              src="/image/anatomia-molar.jpg"
+              width="520"
+              height="650"
+              alt="Molar visto de frente, com a coroa, o colo e as três raízes visíveis."
+              class="video-calibrado"
+              loading="lazy"
+              decoding="async"
+            />
+          </picture>
+
+          {/* Os pontos ficam sobre a imagem. São marcação visual apenas: a
+              informação de verdade está na lista ao lado, que é legível sem
+              enxergar a imagem.
+              Posicionados por porcentagem em vez de SVG: com
+              preserveAspectRatio="none" num quadro 520x650 o círculo vira
+              elipse achatada. */}
+          {ANATOMIA.partes.map((p) => (
+            <span class="prancha__ponto" style={`left:${p.x}%;top:${p.y}%`} aria-hidden="true" />
+          ))}
+        </div>
+      </div>
+      <figcaption class="text-rotulo mt-4 opacity-70">
+        Molar inferior. As quatro regiões estão descritas em seguida.
+      </figcaption>
+    </figure>
+
+    {/* os rótulos, como conteúdo de verdade */}
+    <div class="col-span-full mt-10 md:col-span-4 md:mt-0">
+      <dl class="prancha__lista">
+        {ANATOMIA.partes.map((p) => (
+          <div class="prancha__item">
+            <dt class="text-rotulo flex items-center gap-2 font-medium">
+              <span class="prancha__marca" aria-hidden="true"></span>
+              {p.rotulo}
+            </dt>
+            <dd class="max-w-prancha text-corpo-estreito mt-2">
+              {p.texto}
+              <a class="ligacao" href={`#tratamento-${p.tratamento}`}>
+                Ver {nomeDoTratamento(p.tratamento).toLowerCase()}
+              </a>
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  </div>
+</section>
+
+<style>
+  .anatomia {
+    background: var(--color-eucalipto);
+    color: var(--color-osso);
+    margin-top: var(--spacing-r-maximo);
+    padding-block: var(--spacing-r-respiro);
+  }
+
+  /* O render tem fundo bege claro e vive sobre o eucalipto. Duas saídas
+     foram testadas: dissolver a borda com máscara radial, que come o dente
+     junto com o fundo porque os dois têm luminância parecida — e assumir a
+     imagem como PRANCHA MONTADA, painel claro com fio de 1px sobre o verde.
+     A segunda é a que combina com o conceito e mantém o dente legível. */
+  .prancha__quadro {
+    max-width: 420px;
+    background: var(--color-osso);
+    border: 1px solid color-mix(in srgb, var(--color-linha) 55%, transparent);
+    padding: 1.25rem;
+  }
+
+  .prancha__imagem {
+    position: relative;
+  }
+
+  .prancha__quadro img {
+    width: 100%;
+    height: auto;
+  }
+
+  /* O único âmbar da página inteira. No passo 5 ele acende no hover e no
+     clique, e ganha o fio de 1px até o rótulo — o fio depende de posição
+     calculada em tempo de execução (vector.project), por isso não existe
+     ainda na versão estática. */
+  .prancha__ponto {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    margin: -7px 0 0 -7px;
+    border-radius: 50%;
+    background: var(--color-ambar);
+    /* Anel escuro para o ponto não sumir sobre a parte clara do dente.
+       É `border`, não `box-shadow`: a página inteira roda com sombra zero
+       (BRIEF seção 5) e abrir exceção aqui abriria em todo lugar. */
+    border: 2px solid var(--color-osso);
+    box-sizing: border-box;
+  }
+
+  .prancha__lista {
+    display: grid;
+    gap: 0;
+  }
+
+  .prancha__item {
+    padding-block: 1.4rem;
+    border-top: 1px solid color-mix(in srgb, var(--color-linha) 45%, transparent);
+  }
+
+  .prancha__item:last-child {
+    border-bottom: 1px solid color-mix(in srgb, var(--color-linha) 45%, transparent);
+  }
+
+  .prancha__marca {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--color-ambar);
+    flex: none;
+  }
+
+  .ligacao {
+    display: block;
+    margin-top: 0.5rem;
+    color: var(--color-osso);
+    text-decoration-color: color-mix(in srgb, var(--color-osso) 45%, transparent);
+    text-underline-offset: 4px;
+  }
+
+  .ligacao:hover {
+    text-decoration-color: currentColor;
+  }
+</style>

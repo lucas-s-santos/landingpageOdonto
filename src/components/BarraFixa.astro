@@ -1,0 +1,53 @@
+---
+import { CTA } from '../data/conteudo';
+---
+
+<!-- Barra fixa do mobile. O BRIEF pede que ela apareça depois da seção 3 —
+     antes disso a pessoa ainda não tem informação para decidir.
+     É o MESMO CTA: mesmo verbo, mesma cor, mesmo destino.
+     Sem JavaScript ela simplesmente não aparece, e o CTA do header e o da
+     seção 8 continuam dando conta. -->
+<div class="barra" hidden data-barra-fixa>
+  <a href="#agendar" class="cta cta--claro barra__botao">{CTA}</a>
+</div>
+
+<script>
+  const barra = document.querySelector<HTMLElement>('[data-barra-fixa]');
+  const gatilho = document.querySelector('#anatomia');
+
+  if (barra && gatilho && 'IntersectionObserver' in window) {
+    const observador = new IntersectionObserver(
+      ([entrada]) => {
+        // aparece quando a seção do dente já passou pelo topo da tela
+        barra.hidden = entrada.boundingClientRect.top > 0;
+      },
+      { threshold: 0 }
+    );
+    observador.observe(gatilho);
+  }
+</script>
+
+<style>
+  .barra {
+    position: fixed;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: 20;
+    background: var(--color-osso);
+    border-top: 1px solid var(--color-linha);
+    padding: 0.75rem var(--spacing-margem);
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+  }
+
+  .barra__botao {
+    display: block;
+    text-align: center;
+    width: 100%;
+  }
+
+  @media (min-width: 900px) {
+    .barra {
+      display: none;
+    }
+  }
+</style>

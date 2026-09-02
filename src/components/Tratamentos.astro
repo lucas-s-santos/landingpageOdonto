@@ -1,0 +1,118 @@
+---
+import { TRATAMENTOS } from '../data/conteudo';
+---
+
+{/*
+  SEÇÃO 4 — vence "vocês fazem o que eu preciso?"
+  Não são cards: são linhas horizontais separadas por fio de 1px, densas,
+  encostadas umas nas outras.
+
+  Usa <details>/<summary> em vez de <button aria-expanded>. O MOTION.md pede
+  button + aria-expanded, mas <summary> É um botão para o navegador e já expõe
+  aria-expanded sozinho — com a vantagem de funcionar sem uma linha de
+  JavaScript. Como o passo 3 não pode depender de JS, esta é a base honesta.
+  O passo 4 anima interceptando o evento `toggle` e animando a altura do
+  wrapper interno, sem trocar a marcação.
+*/}
+<section id="tratamentos" class="grade mt-r-colapso" aria-labelledby="tratamentos-titulo">
+  <div class="col-span-full">
+    <h2 id="tratamentos-titulo" class="text-secao">O que a gente faz</h2>
+    <p class="max-w-corpo text-rotulo mt-4 opacity-75">
+      Duração é estimativa de tempo de cadeira, não promessa de resultado. Cada caso muda.
+    </p>
+  </div>
+
+  <div class="col-span-full mt-10">
+    {
+      TRATAMENTOS.map((t) => (
+        <details id={`tratamento-${t.id}`} class="item" name="tratamentos">
+          <summary class="item__cabeca">
+            <span class="item__nome text-tratamento">{t.nome}</span>
+            <span class="item__duracao text-rotulo">{t.duracao}</span>
+            <span class="item__sinal" aria-hidden="true" />
+          </summary>
+          <div class="item__corpo">
+            <p class="max-w-corpo">{t.texto}</p>
+          </div>
+        </details>
+      ))
+    }
+  </div>
+</section>
+
+<style>
+  .item {
+    border-top: 1px solid var(--color-linha);
+  }
+
+  .item:last-of-type {
+    border-bottom: 1px solid var(--color-linha);
+  }
+
+  .item__cabeca {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    padding-block: 1.35rem;
+    cursor: pointer;
+    list-style: none;
+    /* alvo de toque confortável no mobile */
+    min-height: 56px;
+    transition: padding-left 0.001ms; /* o deslocamento de 12px é passo 4 */
+  }
+
+  .item__cabeca::-webkit-details-marker {
+    display: none;
+  }
+
+  .item__nome {
+    flex: 1;
+    font-family: var(--font-texto);
+    font-weight: 500;
+  }
+
+  .item__duracao {
+    flex: none;
+    opacity: 0.7;
+    display: none;
+  }
+
+  @media (min-width: 640px) {
+    .item__duracao {
+      display: block;
+    }
+  }
+
+  /* Sinal de mais/menos desenhado em CSS. Nada de ícone de biblioteca e
+     nada de seta — itens 7 e 14 da seção 9 do BRIEF. */
+  .item__sinal {
+    flex: none;
+    position: relative;
+    width: 14px;
+    height: 14px;
+    align-self: center;
+  }
+
+  .item__sinal::before,
+  .item__sinal::after {
+    content: '';
+    position: absolute;
+    background: var(--color-tinta);
+    inset-inline: 0;
+    top: 50%;
+    height: 1px;
+    margin-top: -0.5px;
+  }
+
+  .item__sinal::after {
+    transform: rotate(90deg);
+  }
+
+  .item[open] .item__sinal::after {
+    transform: rotate(0deg);
+  }
+
+  .item__corpo {
+    padding-bottom: 1.6rem;
+  }
+</style>

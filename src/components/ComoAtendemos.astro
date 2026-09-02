@@ -1,0 +1,19 @@
+---
+import { COMO_ATENDEMOS } from '../data/conteudo';
+---
+
+<!-- SEÇÃO 2 — vence "vão me julgar / vou levar sermão?"
+     A seção mais silenciosa da página, e isso é o ponto. Texto corrido:
+     sem lista, sem ícone, sem bullet. O título fica deslocado duas colunas
+     à direita para quebrar a régua do topo. -->
+<section class="grade mt-r-curto" aria-labelledby="atendimento-titulo">
+  <div class="col-span-full md:col-start-3 md:col-span-9">
+    <h2 id="atendimento-titulo" class="text-secao max-w-[20ch]">
+      {COMO_ATENDEMOS.titulo}
+    </h2>
+
+    <div class="max-w-corpo mt-8 grid gap-5">
+      {COMO_ATENDEMOS.paragrafos.map((p) => <p>{p}</p>)}
+    </div>
+  </div>
+</section>

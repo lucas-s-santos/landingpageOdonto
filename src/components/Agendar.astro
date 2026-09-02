@@ -1,0 +1,173 @@
+---
+import { AGENDAR, CLINICA, CTA, ORIGEM, linkWhatsApp } from '../data/conteudo';
+
+/**
+ * Link base, montado no servidor. Já funciona sem uma linha de JavaScript:
+ * é um <a> comum para o WhatsApp com uma mensagem genérica. O script apenas
+ * enriquece o texto com o que a pessoa escolheu.
+ *
+ * Retorna null enquanto CLINICA.whatsapp for [PREENCHER] — nesse caso a
+ * interface mostra o telefone em vez de um botão que não leva a lugar nenhum.
+ */
+const mensagemBase = `Olá! Vim pelo ${ORIGEM} e queria agendar uma avaliação.`;
+const href = linkWhatsApp(mensagemBase);
+---
+
+{/*
+  SEÇÃO 8 — o CTA primário.
+  O formulário é o atrito: a visitante não preenche formulário, ela manda
+  mensagem. Três campos, e o envio monta a mensagem do WhatsApp.
+
+  Não existe <form> com action: nada é enviado para servidor nenhum, porque
+  não há servidor. O que a pessoa digita não sai do navegador dela a não ser
+  dentro da mensagem que ela mesma manda.
+*/}
+<section id="agendar" class="agendar sobre-escuro" aria-labelledby="agendar-titulo">
+  <div class="grade">
+    <div class="col-span-full md:col-span-5">
+      <h2 id="agendar-titulo" class="text-secao">{AGENDAR.titulo}</h2>
+      <p class="max-w-prancha mt-6">{AGENDAR.apoio}</p>
+    </div>
+
+    <div class="col-span-full mt-10 md:col-span-6 md:col-start-7 md:mt-0">
+      <div class="campos" data-agendar>
+        <p class="campo">
+          <label class="text-rotulo font-medium" for="ag-nome">Nome</label>
+          <input
+            id="ag-nome"
+            name="nome"
+            type="text"
+            autocomplete="given-name"
+            maxlength="60"
+            data-campo="nome"
+          />
+        </p>
+
+        <p class="campo">
+          <label class="text-rotulo font-medium" for="ag-motivo">O que te trouxe aqui</label>
+          <select id="ag-motivo" name="motivo" data-campo="motivo">
+            <option value="">Prefiro não dizer agora</option>
+            {AGENDAR.motivos.map((m) => <option value={m}>{m}</option>)}
+          </select>
+        </p>
+
+        <p class="campo">
+          <label class="text-rotulo font-medium" for="ag-horario">
+            Melhor horário para retornar
+          </label>
+          <select id="ag-horario" name="horario" data-campo="horario">
+            <option value="">Qualquer um</option>
+            {AGENDAR.horarios.map((h) => <option value={h}>{h}</option>)}
+          </select>
+        </p>
+
+        {
+          href ? (
+            <p class="mt-8">
+              <a
+                class="cta cta--claro"
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-ima
+                data-link-whatsapp
+                data-base={mensagemBase}
+              >
+                {CTA}
+              </a>
+            </p>
+          ) : (
+            <p class="mt-8 text-rotulo aviso">
+              [PREENCHER número de WhatsApp em <code>src/data/conteudo.ts</code>] — enquanto
+              isso, o telefone da clínica é {CLINICA.telefone}.
+            </p>
+          )
+        }
+
+        <p class="text-rotulo mt-4 opacity-75">
+          O botão abre o WhatsApp com a mensagem já escrita. Você lê antes de enviar.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  /**
+   * Enriquece o link do WhatsApp com o que a pessoa escolheu.
+   *
+   * Segurança: o texto vai para a URL sempre por `URLSearchParams`, que faz o
+   * escape sozinho — nada de concatenar string digitada em URL. O `href` é
+   * montado a partir da origem do link renderizado no servidor, então o script
+   * não consegue apontar o botão para outro domínio, mesmo que algo estranho
+   * chegue nos campos.
+   */
+  const raiz = document.querySelector<HTMLElement>('[data-agendar]');
+  const link = raiz?.querySelector<HTMLAnchorElement>('[data-link-whatsapp]');
+
+  if (raiz && link) {
+    const base = link.dataset.base ?? '';
+    const destino = new URL(link.href);
+
+    const valor = (nome: string) =>
+      raiz.querySelector<HTMLInputElement | HTMLSelectElement>(`[data-campo="${nome}"]`)?.value.trim() ?? '';
+
+    const atualizar = () => {
+      const nome = valor('nome').slice(0, 60);
+      const motivo = valor('motivo');
+      const horario = valor('horario');
+
+      const linhas = [base];
+      if (nome) linhas.push(`Meu nome é ${nome}.`);
+      if (motivo) linhas.push(`Motivo: ${motivo}.`);
+      if (horario) linhas.push(`Melhor horário para retornar: ${horario.toLowerCase()}.`);
+
+      destino.searchParams.set('text', linhas.join(' '));
+      link.href = destino.toString();
+    };
+
+    raiz.addEventListener('input', atualizar);
+    raiz.addEventListener('change', atualizar);
+  }
+</script>
+
+<style>
+  .agendar {
+    background: var(--color-eucalipto);
+    color: var(--color-osso);
+    margin-top: var(--spacing-r-longo);
+    padding-block: var(--spacing-r-respiro);
+  }
+
+  .campos {
+    display: grid;
+    gap: 1.25rem;
+    max-width: 26rem;
+  }
+
+  .campo {
+    display: grid;
+    gap: 0.4rem;
+  }
+
+  .campo input,
+  .campo select {
+    border: 1px solid color-mix(in srgb, var(--color-linha) 60%, transparent);
+    background: transparent;
+    color: var(--color-osso);
+    padding: 0.75rem 0.85rem;
+    border-radius: var(--radius-campo);
+    width: 100%;
+  }
+
+  .campo select option {
+    /* o menu nativo é desenhado pelo sistema: precisa de par próprio */
+    background: var(--color-osso);
+    color: var(--color-tinta);
+  }
+
+  .aviso {
+    border: 1px solid var(--color-ambar);
+    padding: 0.85rem;
+  }
+</style>

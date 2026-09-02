@@ -1,0 +1,62 @@
+---
+import { EQUIPE } from '../data/conteudo';
+---
+
+<!-- SEÇÃO 5 — vence "quem vai botar a mão na minha boca?"
+     Nome completo e CRO de cada profissional são OBRIGATÓRIOS pela
+     CFO-196/2019. O CRO vai como texto normal, nunca como selo ou badge. -->
+<section class="grade mt-r-amplo" aria-labelledby="equipe-titulo">
+  <div class="col-span-full">
+    <h2 id="equipe-titulo" class="text-secao">Quem atende</h2>
+  </div>
+
+  <div class="col-span-full mt-10 grid gap-14">
+    {
+      EQUIPE.map((pessoa, i) => (
+        <article class:list={['pessoa', i % 2 === 1 && 'pessoa--deslocada']}>
+          <div class="pessoa__retrato" role="img" aria-label={`Retrato de ${pessoa.nome}`}>
+            <span class="text-rotulo">[PREENCHER retrato 4:5]</span>
+          </div>
+
+          <div class="pessoa__dados">
+            <h3 class="text-tratamento font-texto font-medium">{pessoa.nome}</h3>
+            <p class="text-rotulo mt-1 opacity-75">{pessoa.atuacao}</p>
+            <p class="text-rodape mt-1">
+              CRO-MG <span data-numero>{pessoa.cro}</span>
+            </p>
+            <p class="max-w-prancha mt-4">{pessoa.sobre}</p>
+          </div>
+        </article>
+      ))
+    }
+  </div>
+</section>
+
+<style>
+  .pessoa {
+    display: grid;
+    gap: 1.5rem;
+  }
+
+  .pessoa__retrato {
+    aspect-ratio: 4 / 5;
+    max-width: 260px;
+    background: var(--color-carvalho);
+    display: grid;
+    place-items: center;
+    color: var(--color-tinta);
+  }
+
+  @media (min-width: 700px) {
+    .pessoa {
+      grid-template-columns: 260px minmax(0, 1fr);
+      gap: 2.5rem;
+      align-items: start;
+    }
+
+    /* o segundo bloco sai do alinhamento do primeiro de propósito */
+    .pessoa--deslocada {
+      margin-left: 8%;
+    }
+  }
+</style>

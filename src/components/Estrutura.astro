@@ -1,0 +1,39 @@
+---
+import { ESTRUTURA } from '../data/conteudo';
+---
+
+<!-- SEÇÃO 6 — vence "é limpo? é seguro?"
+     Vídeo em bloco contido de 7 colunas, texto em 4, uma coluna de calha. -->
+<section class="grade mt-r-medio items-center" aria-labelledby="estrutura-titulo">
+  <div class="col-span-full md:col-span-7">
+    <video
+      class="video-calibrado estrutura__video"
+      poster="/video/clinic-room-poster.jpg"
+      autoplay
+      muted
+      loop
+      playsinline
+      preload="none"
+      aria-hidden="true"
+      tabindex="-1"
+    >
+      <source src="/video/clinic-room.webm" type="video/webm" />
+      <source src="/video/clinic-room.mp4" type="video/mp4" />
+    </video>
+  </div>
+
+  <div class="col-span-full mt-8 md:col-span-4 md:col-start-9 md:mt-0">
+    <h2 id="estrutura-titulo" class="text-secao">{ESTRUTURA.titulo}</h2>
+    <div class="max-w-prancha mt-6 grid gap-4">
+      {ESTRUTURA.paragrafos.map((p) => <p>{p}</p>)}
+    </div>
+  </div>
+</section>
+
+<style>
+  .estrutura__video {
+    width: 100%;
+    height: clamp(220px, 40vh, 420px);
+    object-fit: cover;
+  }
+</style>
