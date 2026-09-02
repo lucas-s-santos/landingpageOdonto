@@ -93,6 +93,25 @@
      2px em campo de formulário. 0 em absolutamente todo o resto.
      -------------------------------------------------------------------- */
   --radius-campo: 2px;
+
+  /* --- curvas ---------------------------------------------------------
+     Para o movimento que roda em CSS: hover, press, troca de estado.
+     O movimento orquestrado (abertura, máscara de título, scrub) roda em
+     GSAP e usa as eases nomeadas do MOTION.md.
+
+     As curvas nativas do CSS são fracas demais. Estas são as da skill
+     `animate`: não invente `cubic-bezier(0.4, 0, 0.2, 1)` porque parece
+     familiar.
+
+     Regra que vale em toda a página: `ease-in` nunca em interface. Ele
+     começa devagar justo no instante em que a pessoa está olhando.
+     -------------------------------------------------------------------- */
+  --ease-saida: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-entra-sai: cubic-bezier(0.77, 0, 0.175, 1);
+
+  --tempo-press: 140ms;
+  --tempo-hover: 240ms;
+  --tempo-expandir: 550ms;
 }
 
 /* ==========================================================================
@@ -331,5 +350,135 @@
   .cta--claro:hover {
     background: color-mix(in srgb, var(--color-osso) 88%, black);
     border-color: color-mix(in srgb, var(--color-osso) 88%, black);
+  }
+}
+
+/* ==========================================================================
+   MOVIMENTO — a parte que roda em CSS.
+   O orquestrado (abertura, máscara de título, scrub, ímã) está em
+   src/scripts/movimento.ts. Aqui fica hover, press e troca de estado:
+   a ferramenta mais barata que resolve, e roda fora da main thread.
+   ========================================================================== */
+
+@layer components {
+  /* Máscara de linha. O JS adiciona esta classe às linhas do título da
+     abertura e às linhas que a SplitText cria nos títulos de seção.
+     Sem JS ela nunca é aplicada e o título fica visível, como deve. */
+  .mascara {
+    display: block;
+    overflow: hidden;
+    /* a descendente do 'g' e do 'ç' não pode ser cortada pela máscara */
+    padding-bottom: 0.12em;
+    margin-bottom: -0.12em;
+  }
+
+  /* --- cursor ---------------------------------------------------------
+     10px, segue o mouse com atraso. Só existe quando o JS o cria, e só
+     no desktop com ponteiro fino. */
+  .cursor {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 10px;
+    height: 10px;
+    margin: -5px 0 0 -5px;
+    border-radius: 50%;
+    background: currentColor;
+    border: 0 solid currentColor;
+    color: var(--color-osso);
+    pointer-events: none;
+    z-index: 90;
+    /* O ponto se inverte contra o que estiver embaixo: funciona igual
+       sobre o osso e sobre o eucalipto, sem precisar trocar de cor. */
+    mix-blend-mode: difference;
+    will-change: transform;
+  }
+
+  /* O cursor nativo some só no wrapper. Em campo de formulário ele volta
+     sempre — MOTION.md §1. */
+  .tem-cursor body {
+    cursor: none;
+  }
+
+  .tem-cursor input,
+  .tem-cursor select,
+  .tem-cursor textarea {
+    cursor: auto;
+  }
+
+  @media (pointer: coarse), (max-width: 899px) {
+    .cursor {
+      display: none;
+    }
+  }
+}
+
+@layer base {
+  /* --- press ----------------------------------------------------------
+     Feedback de toque. 140ms: abaixo disso não se percebe, acima
+     atrapalha quem clica rápido. */
+  .cta {
+    transition:
+      background-color var(--tempo-hover) var(--ease-saida),
+      border-color var(--tempo-hover) var(--ease-saida);
+  }
+
+  .cta:active {
+    transform: scale(0.98);
+    transition-duration: var(--tempo-press);
+  }
+
+  /* --- linha de tratamento --------------------------------------------
+     Hover desloca 12px para a direita e o fio de baixo se ilumina.
+     Só transform: deslocar por margin ou padding dispararia layout na
+     lista inteira a cada movimento de mouse. */
+  .item__cabeca {
+    transition: transform var(--tempo-hover) var(--ease-saida);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .item:hover .item__cabeca {
+      transform: translateX(12px);
+    }
+
+    .item:hover {
+      border-top-color: var(--color-tinta);
+    }
+
+    .item:hover + .item {
+      border-top-color: var(--color-tinta);
+    }
+  }
+
+  .item {
+    transition: border-color var(--tempo-hover) var(--ease-saida);
+  }
+
+  /* --- hotspot da prancha ---------------------------------------------
+     Cresce de 14px para 18px no hover. O passo 5 liga isto à cena 3D. */
+  .prancha__ponto {
+    transition: transform var(--tempo-hover) var(--ease-saida);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .prancha__ponto:hover {
+      transform: scale(1.3);
+    }
+  }
+
+  /* --- reduced motion --------------------------------------------------
+     Desliga também o que roda em CSS. O bloco em @layer base mais acima
+     já zera duração de transição; isto garante que nenhum estado de hover
+     deslize. */
+  @media (prefers-reduced-motion: reduce) {
+    .item:hover .item__cabeca,
+    .prancha__ponto:hover,
+    .cta:active {
+      transform: none;
+    }
+
+    .cursor {
+      display: none;
+    }
   }
 }

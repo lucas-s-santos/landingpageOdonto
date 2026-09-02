@@ -21,7 +21,8 @@ import { CLINICA } from '../data/conteudo';
  * Não reordenar sem reler aquela tabela: a seção 7 vem depois da 6 porque
  * ninguém se importa com o roteiro da consulta antes de confiar no lugar.
  *
- * NÃO IMPORTAR AQUI, ainda: GSAP, Lenis, Three.js. Passos 4 e 5.
+ * NÃO IMPORTAR AQUI, ainda: Three.js. É o passo 5, e entra por import()
+ * dinâmico quando a seção do dente aparece — nunca no bundle inicial.
  */
 ---
 
@@ -46,3 +47,18 @@ import { CLINICA } from '../data/conteudo';
   <Rodape />
   <BarraFixa />
 </Base>
+
+<script>
+  // PASSO 4 — camada de movimento.
+  //
+  // A página inteira funciona sem ela: tudo nasce visível no HTML e o
+  // accordion abre e fecha por conta do <details>.
+  //
+  // Import dinâmico atrás de prefers-reduced-motion. GSAP + ScrollTrigger +
+  // SplitText + Lenis são 52 KB comprimidos, e quem pediu menos movimento
+  // não deveria pagar por eles. Assim "versão completa e estática" deixa de
+  // ser uma promessa e passa a ser 0 byte de JavaScript de animação.
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    import('../scripts/movimento');
+  }
+</script>

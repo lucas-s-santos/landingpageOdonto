@@ -1,6 +1,6 @@
 # HANDOFF — estado do projeto e como retomar
 
-Atualizado em 01/09/2026, no fim da sessão do passo 3.
+Atualizado em 01/09/2026, no fim da sessão do passo 4.
 Leia este arquivo primeiro. Ele diz onde o projeto parou e o que fazer em seguida.
 
 ---
@@ -12,8 +12,8 @@ Leia este arquivo primeiro. Ele diz onde o projeto parou e o que fazer em seguid
 | 1. Plano de design | **Feito e aprovado.** Está em `PLANO-DESIGN.md` |
 | 2. Scaffold Astro + Tailwind + tokens + fontes | **Feito.** Build limpo, `astro check` sem erros |
 | 3. Estrutura semântica com copy real, sem movimento | **Feito.** 9 seções, conformidade e a11y verificadas |
-| 4. Camada de movimento (`MOTION.md`) | **é o próximo** |
-| 5. Cena 3D do dente sob demanda | não começou |
+| 4. Camada de movimento (`MOTION.md`) | **Feito**, menos o que depende do 3D |
+| 5. Cena 3D do dente sob demanda | **é o próximo** |
 | 6. Screenshot 1440/390 + autocrítica contra a seção 9 | não começou |
 
 ### Decisões que estavam pendentes, agora fechadas
@@ -197,81 +197,79 @@ decidido só por descrição escrita, que é o canal mais fraco.
 
 ---
 
-## Parte 3 — Passo 4: movimento (o próximo)
+## Parte 3 — Passo 5: a cena 3D (o próximo)
 
-O passo 3 está pronto e commitado. A página tem as 9 seções com copy real e
-funciona inteira sem JavaScript de animação.
+### O que o passo 4 entregou
 
-### Skills
+Tudo em `src/scripts/movimento.ts`, mais a parte que roda em CSS no fim de
+`src/styles/tokens.css`.
 
-**Instalada: `impeccable`** (pbakaus, Apache-2.0, 64k estrelas, v4.1.3).
+- Lenis (`lerp: 0.09`, `syncTouch: false`), só no desktop
+- cursor de 10px com lerp 0.12, escala 3.2 sobre clicável e 5 vazado sobre
+  mídia, `mix-blend-mode: difference` — desligado abaixo de 900px e sob
+  `pointer: coarse`
+- ímã (RAIO 90, FORÇA 0.32) só nos elementos com `data-ima`
+- abertura: vídeo `scale 1.06 → 1`, linhas do título por máscara com stagger
+  0.09, apoio e CTA atrás. Roda uma vez
+- parallax do scroll na abertura (vídeo `yPercent 12`, texto `40`) e na
+  textura de esmalte (`0.15`)
+- máscara de linha nos títulos de seção via `SplitText`, `once: true`
+- accordion animando a altura ao interceptar o clique no `<summary>`, sem
+  trocar a marcação; abrir um fecha o outro
+- hover, press e estado em CSS puro, com as curvas da skill `animate`
 
-Fica em `.claude/skills/impeccable/` e está **no `.gitignore`**: é ferramenta
-de desenvolvimento, não faz parte do que o cliente compra. Para reinstalar em
-outra máquina:
+**Duas decisões que valem registro:**
 
-```bash
-git clone --depth 1 https://github.com/pbakaus/impeccable.git /tmp/imp
-mkdir -p .claude/skills
-cp -r /tmp/imp/.agent/skills/impeccable .claude/skills/
-```
+1. **O bundle de movimento só é baixado se a pessoa não pediu
+   `prefers-reduced-motion`.** São 52 KB comprimidos de GSAP + ScrollTrigger
+   + SplitText + Lenis, e quem pediu menos movimento não deveria pagar por
+   eles. Com `reduce`, a página custa **33,3 KB** e recebe **0 byte** de JS de
+   animação. Sem, custa 85,1 KB, tudo deferido.
+2. **`ctx.add(fn)` no `gsap.matchMedia` EXECUTA a função, não registra
+   limpeza.** Usá-lo para desmontagem destruía o cursor, o Lenis e os ímãs no
+   mesmo instante em que eram criados — e sem erro nenhum no console. A
+   limpeza é o que o callback **retorna**. Se for mexer neste arquivo, é a
+   armadilha número um.
 
-Instalada **sem os hooks**. O instalador oficial (`npx impeccable install`)
-também registra um hook que roda o detector a cada edição de arquivo de UI.
-Pode ser útil, mas é processo automático mexendo no fluxo sem aviso — se
-quiser, é decisão consciente, não padrão.
+### O que ficou de fora, e por quê
 
-Comandos que interessam aqui: `critique` (revisão de UX com pontuação),
-`audit` (a11y, performance, responsivo) e `animate` no passo 4. A skill
-declara "**The brief wins. Redirecting a clear brief toward your taste is
-failure**" — por isso ela soma ao `PLANO-DESIGN.md` em vez de brigar com ele.
+As seções 4 e 5 do `MOTION.md` — a rotação do dente presa ao scroll e a
+cascata dos fios da prancha — **dependem do Three.js e das coordenadas
+projetadas**, que são exatamente o passo 5. Não dá para fazer antes.
 
-#### Skills avaliadas e recusadas
+### O que o passo 5 entrega
 
-| Repositório | Veredito |
-|---|---|
-| `Leonxlnx/taste-skill` | Boa e mantida (83k estrelas), mas são 1206 linhas que **definem direção de design** por dials de variância/movimento/densidade. A direção deste projeto já está decidida, aprovada e com contrastes medidos. Entraria competindo com o BRIEF. |
-| `alirezarezvani/claude-skills` | 380+ skills de engenharia, produto, marketing, compliance e finanças. Domínio errado, e instalar centenas de skills é exatamente a poluição de contexto que o `SETUP.md` alerta. |
-| `poteto/noodle` | Framework Go de orquestração de agentes. Não é skill de design e não se aplica. |
-| `microsoft/playwright` | É o repositório do próprio Playwright (~1 GB). Já temos `@playwright/test` via npm e os scripts funcionando. Clonar não acrescenta nada. |
-| `adversarial-review` (colada no chat) | O `codex` está instalado, então rodaria. Mas ela exige `brain/principles.md` e `references/reviewer-lenses.md`, `reviewer-prompt.md` e `verdict-format.md` — nenhum desses arquivos existe aqui. Falharia no passo 1. Falta o repositório de origem. |
-| registro `@react-bits` | São componentes React animados. Este projeto é Astro com **zero** React. Adicionar React por causa de biblioteca de componente estoura o orçamento de Lighthouse 90 e contraria a direção de "instrumento, não anúncio". |
+- [ ] `import()` dinâmico de Three.js quando `#anatomia` entra em viewport.
+      **Nunca no bundle inicial** — hoje ele está fora e tem que continuar
+- [ ] GLTFLoader + DRACOLoader com o decoder path apontado, carregando
+      `public/model/dente-molar-draco.glb` (26 KB)
+- [ ] seção pinada com `scrub: 1` (não `true`: o segundo de inércia é o que
+      faz parecer objeto físico, não valor ligado num slider)
+- [ ] fios de 1px em SVG com as pontas ancoradas em coordenadas 3D
+      projetadas (`vector.project(camera)`) e reposicionadas a cada frame
+- [ ] cascata dos fios com `once: true` — o segundo e último momento
+      automático da página
+- [ ] hotspot: ponto de 6 para 10px no hover, âmbar acende, fio engrossa
+      para 1.5px; no clique a câmera anima até o ângulo daquela parte e as
+      outras caem para `opacity 0.25`
+- [ ] mobile: sem pin, `powerPreference: 'low-power'`, `antialias: false`,
+      `setPixelRatio(min(dpr, 2))`, e parar de renderizar fora da tela
+- [ ] a versão estática atual continua sendo o fallback de
+      `prefers-reduced-motion` — ela não pode sumir
 
-As duas que o `SETUP.md` recomendava (`emilkowalski/skill` e
-`greensock/gsap-skills`) continuam **não instaladas** — não estavam na lista
-que o Lucas passou. Se quiser, valem para o passo 4:
+O poster da seção já existe: `public/image/anatomia-molar.webp`, e as
+coordenadas dos quatro pontos estão em `ANATOMIA.partes` como porcentagem —
+no passo 5 elas passam a vir da projeção e viram só o fallback.
 
-```bash
-npx skills add emilkowalski/skill      # linguagem de animação, autor do Sonner/Vaul
-npx skills add greensock/gsap-skills   # material do GSAP
-```
-
-### O que o passo 4 entrega (ver `MOTION.md`)
-
-- [ ] base: Lenis com `lerp: 0.09`, `syncTouch: false`, dentro de `gsap.matchMedia()`
-- [ ] cursor com lerp 0.12, desligado abaixo de 900px e sob `pointer: coarse`
-- [ ] ímã (`RAIO 90`, `FORCA 0.32`) **só** no CTA e nos hotspots — os elementos
-      já estão marcados com `data-ima`
-- [ ] abertura: máscara de linha no título. As linhas já são elementos próprios
-      (`.linha` dentro do h1), então é só envolver em `overflow: hidden`
-- [ ] máscara de linha nos títulos de seção, e **em mais nada**
-- [ ] accordion: animar a altura interceptando o evento `toggle` do `<details>`,
-      sem trocar a marcação
-- [ ] parallax só em dois lugares: vídeo da abertura e `[data-parallax="0.15"]`
-      da textura de esmalte, que já está no HTML
-- [ ] `prefers-reduced-motion`: página completa e imóvel
-
-**Proibido:** fade-and-slide-up genérico em seção que entra na viewport. É o
-tell número um, e o `MOTION.md` abre com isso.
-
-### Comandos de verificação (já prontos)
+### Comandos de verificação
 
 ```bash
 npm run dev            # http://localhost:4321
-npm run verificar      # build + CFO-196 + acessibilidade + screenshots
+npm run verificar      # build + CFO-196 + a11y + movimento + screenshots
 npm run conformidade   # só a varredura legal
-npm run a11y           # só teclado, foco e títulos
-npm run shot           # só os screenshots em 1440 e 390
+npm run a11y           # teclado, foco, títulos, JSON-LD
+npm run motion         # checagem final do MOTION.md, automatizada
+npm run shot           # screenshots em 1440 e 390
 npx astro check        # tipos
 ```
 

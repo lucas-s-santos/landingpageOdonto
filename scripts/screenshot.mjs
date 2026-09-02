@@ -94,6 +94,11 @@ for (const { nome, width, height } of LARGURAS) {
   });
   await pagina.waitForLoadState('networkidle');
 
+  // O cursor customizado segue o mouse, e um screenshot não tem mouse: ele
+  // fica congelado no meio da tela e vira um ponto escuro que não existe na
+  // página real. Sai antes da foto.
+  await pagina.evaluate(() => document.querySelector('.cursor')?.remove());
+
   await pagina.screenshot({ path: join(SAIDA, `${nome}.png`), fullPage: true });
   console.log(`  ${nome}px → ${join(SAIDA, `${nome}.png`)}`);
 

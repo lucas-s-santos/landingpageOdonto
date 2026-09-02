@@ -16,7 +16,8 @@
     "shot": "astro build && node scripts/screenshot.mjs",
     "conformidade": "astro build && node scripts/conformidade.mjs",
     "a11y": "astro build && node scripts/acessibilidade.mjs",
-    "verificar": "astro build && node scripts/conformidade.mjs && node scripts/acessibilidade.mjs && node scripts/screenshot.mjs"
+    "verificar": "astro build && node scripts/conformidade.mjs && node scripts/acessibilidade.mjs && node scripts/movimento-check.mjs && node scripts/screenshot.mjs",
+    "motion": "astro build && node scripts/movimento-check.mjs"
   },
   "dependencies": {
     "astro": "^7.2.10",
