@@ -30,3 +30,7 @@ desktop.ini
 
 # screenshots do passo 6
 screenshots/
+
+# skill de terceiros (ferramenta de dev, nao faz parte da entrega)
+# reinstalar com o comando no HANDOFF.md, parte 3
+.claude/skills/

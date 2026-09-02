@@ -202,19 +202,49 @@ decidido só por descrição escrita, que é o canal mais fraco.
 O passo 3 está pronto e commitado. A página tem as 9 seções com copy real e
 funciona inteira sem JavaScript de animação.
 
-### Antes de começar o passo 4: instalar as skills
+### Skills
 
-Elas nunca foram instaladas — não existe `.claude/skills` no projeto nem no
-perfil. O `SETUP.md` seção 3 pede duas, e as duas são de movimento, então é
-agora que importam:
+**Instalada: `impeccable`** (pbakaus, Apache-2.0, 64k estrelas, v4.1.3).
+
+Fica em `.claude/skills/impeccable/` e está **no `.gitignore`**: é ferramenta
+de desenvolvimento, não faz parte do que o cliente compra. Para reinstalar em
+outra máquina:
+
+```bash
+git clone --depth 1 https://github.com/pbakaus/impeccable.git /tmp/imp
+mkdir -p .claude/skills
+cp -r /tmp/imp/.agent/skills/impeccable .claude/skills/
+```
+
+Instalada **sem os hooks**. O instalador oficial (`npx impeccable install`)
+também registra um hook que roda o detector a cada edição de arquivo de UI.
+Pode ser útil, mas é processo automático mexendo no fluxo sem aviso — se
+quiser, é decisão consciente, não padrão.
+
+Comandos que interessam aqui: `critique` (revisão de UX com pontuação),
+`audit` (a11y, performance, responsivo) e `animate` no passo 4. A skill
+declara "**The brief wins. Redirecting a clear brief toward your taste is
+failure**" — por isso ela soma ao `PLANO-DESIGN.md` em vez de brigar com ele.
+
+#### Skills avaliadas e recusadas
+
+| Repositório | Veredito |
+|---|---|
+| `Leonxlnx/taste-skill` | Boa e mantida (83k estrelas), mas são 1206 linhas que **definem direção de design** por dials de variância/movimento/densidade. A direção deste projeto já está decidida, aprovada e com contrastes medidos. Entraria competindo com o BRIEF. |
+| `alirezarezvani/claude-skills` | 380+ skills de engenharia, produto, marketing, compliance e finanças. Domínio errado, e instalar centenas de skills é exatamente a poluição de contexto que o `SETUP.md` alerta. |
+| `poteto/noodle` | Framework Go de orquestração de agentes. Não é skill de design e não se aplica. |
+| `microsoft/playwright` | É o repositório do próprio Playwright (~1 GB). Já temos `@playwright/test` via npm e os scripts funcionando. Clonar não acrescenta nada. |
+| `adversarial-review` (colada no chat) | O `codex` está instalado, então rodaria. Mas ela exige `brain/principles.md` e `references/reviewer-lenses.md`, `reviewer-prompt.md` e `verdict-format.md` — nenhum desses arquivos existe aqui. Falharia no passo 1. Falta o repositório de origem. |
+| registro `@react-bits` | São componentes React animados. Este projeto é Astro com **zero** React. Adicionar React por causa de biblioteca de componente estoura o orçamento de Lighthouse 90 e contraria a direção de "instrumento, não anúncio". |
+
+As duas que o `SETUP.md` recomendava (`emilkowalski/skill` e
+`greensock/gsap-skills`) continuam **não instaladas** — não estavam na lista
+que o Lucas passou. Se quiser, valem para o passo 4:
 
 ```bash
 npx skills add emilkowalski/skill      # linguagem de animação, autor do Sonner/Vaul
 npx skills add greensock/gsap-skills   # material do GSAP
 ```
-
-Abra o README de cada uma antes de instalar. Skill mal escrita entra no
-contexto e piora o resultado.
 
 ### O que o passo 4 entrega (ver `MOTION.md`)
 
