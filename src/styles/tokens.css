@@ -222,6 +222,14 @@
     outline-color: var(--color-osso);
   }
 
+  /* Ilha clara DENTRO de uma seção escura — a prancha da seção 3 é uma.
+     Sem isto o anel de foco herda `--color-osso` da regra acima e fica
+     osso sobre osso: contraste 1:1, foco invisível. Medido, não suposto. */
+  .sobre-claro :focus-visible,
+  .sobre-claro:focus-visible {
+    outline-color: var(--color-tinta);
+  }
+
   /* O cursor customizado esconde o nativo só no wrapper. Em campo de
      formulário ele volta sempre — MOTION.md seção 1. */
   input,
@@ -277,6 +285,20 @@
    vazio que faz a página parecer folha de estudo. */
 @utility calha {
   grid-column: 1 / 2;
+}
+
+/* Texto que só o leitor de tela lê. Não usar `display:none` nem
+   `visibility:hidden`: os dois removem o conteúdo da árvore de acessibilidade. */
+@utility sr-apenas {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
 @utility fio {
@@ -480,5 +502,41 @@
     .cursor {
       display: none;
     }
+  }
+}
+
+/* ==========================================================================
+   FIOS DA PRANCHA — seção 3.
+   Criados por src/scripts/dente3d.ts a partir das coordenadas 3D
+   projetadas. Não existem sem JavaScript, e é por isso que os rótulos são
+   texto de verdade numa lista e não dependem deles.
+   ========================================================================== */
+
+@layer components {
+  .fio-prancha {
+    fill: none;
+    stroke: var(--color-linha);
+    stroke-width: 1;
+    opacity: 0.75;
+    transition:
+      stroke-width var(--tempo-hover) var(--ease-saida),
+      stroke var(--tempo-hover) var(--ease-saida),
+      opacity var(--tempo-hover) var(--ease-saida);
+    vector-effect: non-scaling-stroke;
+  }
+
+  /* O fio da parte ativa engrossa e acende. É o terceiro sinal do estado,
+     junto do ponto maior e do rótulo em destaque — o âmbar sozinho dá
+     3,1:1 contra o eucalipto e não pode carregar a informação. */
+  .prancha[data-ativa] .fio-prancha {
+    opacity: 0.35;
+  }
+
+  .prancha__canvas {
+    cursor: grab;
+  }
+
+  .prancha__canvas:active {
+    cursor: grabbing;
   }
 }

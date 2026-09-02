@@ -16,9 +16,9 @@
  * a ferramenta mais barata que resolve. GSAP para hover é desperdício, e CSS
  * roda fora da main thread.
  *
- * O que ainda NÃO está aqui: a rotação do dente presa ao scroll (MOTION §4) e
- * a cascata dos fios da prancha (MOTION §5). As duas dependem do Three.js e
- * das coordenadas projetadas, que são o passo 5.
+ * A rotação do dente (MOTION §4) e a cascata dos fios (MOTION §5) moram em
+ * `dente3d.ts`, carregado por import() dinâmico quando a seção se aproxima —
+ * Three.js não pode estar no bundle inicial.
  */
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -347,6 +347,42 @@ mm.add(
           ease: 'none',
           scrollTrigger: { trigger: el, start: 'top bottom', end: 'bottom top', scrub: true },
         });
+      });
+    }
+
+    // ------------------------------------------------------------------
+    // 4 e 5. A cena 3D do dente.
+    //
+    // Carregada sob demanda, quando #anatomia chega a 400px da viewport.
+    // Antes disso a página não baixa um byte de Three.js. A margem existe
+    // para o modelo estar pronto quando a seção aparece — carregar no
+    // momento exato em que entra na tela mostra a troca.
+    // ------------------------------------------------------------------
+    const anatomia = document.querySelector('#anatomia');
+    if (anatomia) {
+      let cena: { destruir(): void } | null = null;
+      let pedido = false;
+
+      const observador = new IntersectionObserver(
+        async ([entrada]) => {
+          if (!entrada.isIntersecting || pedido) return;
+          pedido = true;
+          observador.disconnect();
+          try {
+            const { montarDente } = await import('./dente3d');
+            cena = await montarDente({ desktop });
+          } catch (erro) {
+            // A prancha estática continua no lugar. Nada quebra.
+            console.warn('cena 3D não carregou:', erro);
+          }
+        },
+        { rootMargin: '400px' }
+      );
+      observador.observe(anatomia);
+
+      limpezas.push(() => {
+        observador.disconnect();
+        cena?.destruir();
       });
     }
 

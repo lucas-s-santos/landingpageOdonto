@@ -1,6 +1,6 @@
 # HANDOFF — estado do projeto e como retomar
 
-Atualizado em 01/09/2026, no fim da sessão do passo 4.
+Atualizado em 02/09/2026, no fim da sessão do passo 5.
 Leia este arquivo primeiro. Ele diz onde o projeto parou e o que fazer em seguida.
 
 ---
@@ -13,8 +13,8 @@ Leia este arquivo primeiro. Ele diz onde o projeto parou e o que fazer em seguid
 | 2. Scaffold Astro + Tailwind + tokens + fontes | **Feito.** Build limpo, `astro check` sem erros |
 | 3. Estrutura semântica com copy real, sem movimento | **Feito.** 9 seções, conformidade e a11y verificadas |
 | 4. Camada de movimento (`MOTION.md`) | **Feito**, menos o que depende do 3D |
-| 5. Cena 3D do dente sob demanda | **é o próximo** |
-| 6. Screenshot 1440/390 + autocrítica contra a seção 9 | não começou |
+| 5. Cena 3D do dente sob demanda | **Feito.** Carrega sob demanda, verificada em navegador |
+| 6. Screenshot 1440/390 + autocrítica contra a seção 9 | **é o próximo** |
 
 ### Decisões que estavam pendentes, agora fechadas
 
@@ -197,83 +197,78 @@ decidido só por descrição escrita, que é o canal mais fraco.
 
 ---
 
-## Parte 3 — Passo 5: a cena 3D (o próximo)
+## Parte 3 — Passo 6: autocrítica (o próximo)
 
-### O que o passo 4 entregou
+### O que o passo 5 entregou
 
-Tudo em `src/scripts/movimento.ts`, mais a parte que roda em CSS no fim de
-`src/styles/tokens.css`.
+`src/scripts/dente3d.ts`, carregado por `import()` dinâmico quando `#anatomia`
+chega a 400px da viewport — **nunca antes**, e isso é testado.
 
-- Lenis (`lerp: 0.09`, `syncTouch: false`), só no desktop
-- cursor de 10px com lerp 0.12, escala 3.2 sobre clicável e 5 vazado sobre
-  mídia, `mix-blend-mode: difference` — desligado abaixo de 900px e sob
-  `pointer: coarse`
-- ímã (RAIO 90, FORÇA 0.32) só nos elementos com `data-ima`
-- abertura: vídeo `scale 1.06 → 1`, linhas do título por máscara com stagger
-  0.09, apoio e CTA atrás. Roda uma vez
-- parallax do scroll na abertura (vídeo `yPercent 12`, texto `40`) e na
-  textura de esmalte (`0.15`)
-- máscara de linha nos títulos de seção via `SplitText`, `once: true`
-- accordion animando a altura ao interceptar o clique no `<summary>`, sem
-  trocar a marcação; abrir um fecha o outro
-- hover, press e estado em CSS puro, com as curvas da skill `animate`
+- GLTFLoader + DRACOLoader carregando o GLB de 26 KB
+- seção pinada no desktop com `scrub: 1`, giro de 1.6π e câmera aproximando
+- arraste do ponteiro somando à rotação, voltando a zero em 1.2s
+- quatro fios de 1px em SVG, com as pontas ancoradas em coordenadas 3D
+  projetadas e reposicionadas a cada frame
+- cascata dos fios por `stroke-dashoffset`, `once: true` — o segundo e
+  último momento automático da página
+- hotspots como `<button>` de verdade, com `aria-pressed`, funcionando por
+  teclado; ao ativar, a câmera anima até o ângulo daquela parte e as outras
+  caem para 0.25 no material
+- mobile sem pin, `low-power`, `antialias: false`, `pixelRatio` limitado a 2,
+  e o laço de render para quando a seção sai da tela
+- se o WebGL falhar ou o contexto for perdido, a imagem estática volta
 
-**Duas decisões que valem registro:**
+### Peso na rede, por camada
 
-1. **O bundle de movimento só é baixado se a pessoa não pediu
-   `prefers-reduced-motion`.** São 52 KB comprimidos de GSAP + ScrollTrigger
-   + SplitText + Lenis, e quem pediu menos movimento não deveria pagar por
-   eles. Com `reduce`, a página custa **33,3 KB** e recebe **0 byte** de JS de
-   animação. Sem, custa 85,1 KB, tudo deferido.
-2. **`ctx.add(fn)` no `gsap.matchMedia` EXECUTA a função, não registra
-   limpeza.** Usá-lo para desmontagem destruía o cursor, o Lenis e os ímãs no
-   mesmo instante em que eram criados — e sem erro nenhum no console. A
-   limpeza é o que o callback **retorna**. Se for mexer neste arquivo, é a
-   armadilha número um.
+```
+primeira carga (HTML + CSS + portão + fonte) ....  33,9 KB
+  com prefers-reduced-motion: é só isso .........  33,9 KB
+  + camada de movimento (deferida) .............. +52,2 KB
+  + cena 3D, só ao chegar na seção 3 ............ +248,7 KB
+```
 
-### O que ficou de fora, e por quê
+### Cinco armadilhas encontradas, todas com o conserto no código
 
-As seções 4 e 5 do `MOTION.md` — a rotação do dente presa ao scroll e a
-cascata dos fios da prancha — **dependem do Three.js e das coordenadas
-projetadas**, que são exatamente o passo 5. Não dá para fazer antes.
+1. **`gltf.scene.traverse` + `grupo.add(malha)` ao mesmo tempo.** `add` tira
+   a malha do pai, e mudar a árvore durante o `traverse` faz a lista de
+   filhos encolher enquanto está sendo percorrida — parte das malhas nunca é
+   visitada. Coletar primeiro, mover depois.
+2. **`catch` silencioso.** A cena falhava e a prancha simplesmente nunca
+   virava 3D, sem uma linha no console. Agora o motivo é logado.
+3. **Disputa de propriedade.** A cascata animava `opacity` no mesmo elemento
+   que o estado "parte selecionada" usa para recuar os outros. Quem
+   terminasse por último vencia — corrida, não bug intermitente. A cascata
+   passou a animar os *filhos* do item.
+4. **Foco invisível.** `.sobre-escuro :focus-visible` pinta o anel de osso,
+   mas a prancha é um painel **claro** dentro da seção escura: osso sobre
+   osso, contraste 1:1. Criada a classe `.sobre-claro` para ilhas claras.
+5. **Cópia do decodificador Draco em `public/`.** Desnecessária: o
+   `DRACOLoader` declara o caminho com `new URL(..., import.meta.url)` e o
+   Vite emite os arquivos sozinho. Manter a cópia manual duplicava o peso no
+   deploy e sairia de sincronia no primeiro `npm update three`.
 
-### O que o passo 5 entrega
+### O que o passo 6 entrega
 
-- [ ] `import()` dinâmico de Three.js quando `#anatomia` entra em viewport.
-      **Nunca no bundle inicial** — hoje ele está fora e tem que continuar
-- [ ] GLTFLoader + DRACOLoader com o decoder path apontado, carregando
-      `public/model/dente-molar-draco.glb` (26 KB)
-- [ ] seção pinada com `scrub: 1` (não `true`: o segundo de inércia é o que
-      faz parecer objeto físico, não valor ligado num slider)
-- [ ] fios de 1px em SVG com as pontas ancoradas em coordenadas 3D
-      projetadas (`vector.project(camera)`) e reposicionadas a cada frame
-- [ ] cascata dos fios com `once: true` — o segundo e último momento
-      automático da página
-- [ ] hotspot: ponto de 6 para 10px no hover, âmbar acende, fio engrossa
-      para 1.5px; no clique a câmera anima até o ângulo daquela parte e as
-      outras caem para `opacity 0.25`
-- [ ] mobile: sem pin, `powerPreference: 'low-power'`, `antialias: false`,
-      `setPixelRatio(min(dpr, 2))`, e parar de renderizar fora da tela
-- [ ] a versão estática atual continua sendo o fallback de
-      `prefers-reduced-motion` — ela não pode sumir
+- [ ] `npm run verificar` passando (já passa)
+- [ ] Lighthouse ≥ 90 em performance no mobile — **ainda não medido**
+- [ ] autocrítica honesta contra a seção 9 do BRIEF, olhando os screenshots
+- [ ] rodar `critique` e `audit` da skill `impeccable`
+- [ ] revisar a lista de tratamentos com o cliente (a seção 3 do BRIEF exige
+      que especialidade só apareça se registrada no CRO)
+- [ ] decidir o peso morto de `public/` (ver Parte 4.1)
 
-O poster da seção já existe: `public/image/anatomia-molar.webp`, e as
-coordenadas dos quatro pontos estão em `ANATOMIA.partes` como porcentagem —
-no passo 5 elas passam a vir da projeção e viram só o fallback.
-
-### Comandos de verificação
+### Comandos
 
 ```bash
 npm run dev            # http://localhost:4321
-npm run verificar      # build + CFO-196 + a11y + movimento + screenshots
+npm run verificar      # build + CFO-196 + a11y + movimento + 3D + screenshots
 npm run conformidade   # só a varredura legal
 npm run a11y           # teclado, foco, títulos, JSON-LD
-npm run motion         # checagem final do MOTION.md, automatizada
+npm run motion         # checagem final do MOTION.md
+npm run dente          # a cena 3D: carga sob demanda, render, hotspots
 npm run shot           # screenshots em 1440 e 390
 npx astro check        # tipos
 ```
-
-`npm run verificar` é o que deve passar antes de dizer que um passo acabou.
 
 ---
 

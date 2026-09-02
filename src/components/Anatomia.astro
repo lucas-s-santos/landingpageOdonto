@@ -6,15 +6,21 @@ const nomeDoTratamento = (id: string) => TRATAMENTOS.find((t) => t.id === id)?.n
 
 {/*
   SEÇÃO 3 — vence "não entendo nada, vão me empurrar coisa".
-  É o elemento-assinatura da página: prancha anatômica.
+  É o elemento-assinatura da página: a prancha anatômica.
 
-  ESTE É O PASSO 3. Não há Three.js aqui e não pode haver: a cena 3D é o
-  passo 5 e entra por import() dinâmico. O que existe agora é a versão
-  estática e completa — e ela não é um rascunho descartável: é exatamente
-  o que fica visível sob `prefers-reduced-motion` e enquanto o WebGL carrega.
+  Três camadas empilhadas no mesmo palco:
 
-  A ligação fio → rótulo é feita por SVG sobreposto. No passo 5 as pontas
-  dos fios passam a ser reposicionadas a cada frame por vector.project(camera).
+    1. a imagem estática — o que existe sem JavaScript, sob
+       `prefers-reduced-motion`, e enquanto o WebGL carrega
+    2. o <canvas> do Three.js — entra por import() dinâmico quando a seção
+       chega perto da viewport, e só então
+    3. o SVG dos fios, que cobre a figura E a coluna dos rótulos, porque o
+       fio sai do dente e termina no rótulo
+
+  Os hotspots são <button> de verdade: a rotação da câmera tem que funcionar
+  por teclado, não só por clique. Os quatro textos ficam sempre legíveis na
+  lista — nenhuma informação depende de conseguir enxergar a imagem ou de o
+  WebGL ter carregado.
 */}
 <section id="anatomia" class="anatomia sobre-escuro" aria-labelledby="anatomia-titulo">
   <div class="grade">
@@ -24,47 +30,56 @@ const nomeDoTratamento = (id: string) => TRATAMENTOS.find((t) => t.id === id)?.n
     </div>
   </div>
 
-  <div class="grade mt-14">
-    {/* a prancha */}
-    <figure class="prancha col-span-full md:col-span-6 md:col-start-2">
-      <div class="prancha__quadro">
-        <div class="prancha__imagem">
-          <picture>
-            <source srcset="/image/anatomia-molar.webp" type="image/webp" />
-            <img
-              src="/image/anatomia-molar.jpg"
-              width="520"
-              height="650"
-              alt="Molar visto de frente, com a coroa, o colo e as três raízes visíveis."
-              class="video-calibrado"
-              loading="lazy"
-              decoding="async"
-            />
-          </picture>
+  <div class="prancha grade mt-14" data-prancha>
+    {/* Os fios. Ficam vazios até o 3D carregar: eles dependem de posição
+        calculada a cada frame, e fio desenhado no servidor apontaria para
+        o lugar errado assim que a tela mudasse de tamanho. */}
+    <svg class="prancha__fios" aria-hidden="true" data-fios></svg>
 
-          {/* Os pontos ficam sobre a imagem. São marcação visual apenas: a
-              informação de verdade está na lista ao lado, que é legível sem
-              enxergar a imagem.
-              Posicionados por porcentagem em vez de SVG: com
-              preserveAspectRatio="none" num quadro 520x650 o círculo vira
-              elipse achatada. */}
-          {ANATOMIA.partes.map((p) => (
-            <span class="prancha__ponto" style={`left:${p.x}%;top:${p.y}%`} aria-hidden="true" />
-          ))}
-        </div>
+    <figure class="prancha__figura col-span-full md:col-span-6 md:col-start-2">
+      <div class="prancha__palco sobre-claro" data-palco>
+        <picture>
+          <source srcset="/image/anatomia-molar.webp" type="image/webp" />
+          <img
+            src="/image/anatomia-molar.jpg"
+            width="520"
+            height="650"
+            alt="Molar visto de frente, com a coroa, o colo e as três raízes visíveis."
+            class="video-calibrado prancha__estatica"
+            loading="lazy"
+            decoding="async"
+            data-estatica
+          />
+        </picture>
+
+        {/* O canvas nasce vazio e sem altura. O script o revela depois que o
+            modelo carregou — antes disso a imagem segura o lugar. */}
+        <canvas class="prancha__canvas" data-canvas hidden></canvas>
+
+        {ANATOMIA.partes.map((p) => (
+          <button
+            type="button"
+            class="hotspot"
+            style={`left:${p.x}%;top:${p.y}%`}
+            data-hotspot={p.id}
+            aria-pressed="false"
+          >
+            <span class="sr-apenas">Ver {p.rotulo.toLowerCase()} no modelo</span>
+          </button>
+        ))}
       </div>
-      <figcaption class="text-rotulo mt-4 opacity-70">
+
+      <figcaption class="text-rotulo mt-4 opacity-70" data-legenda>
         Molar inferior. As quatro regiões estão descritas em seguida.
       </figcaption>
     </figure>
 
-    {/* os rótulos, como conteúdo de verdade */}
-    <div class="col-span-full mt-10 md:col-span-4 md:mt-0">
+    <div class="prancha__rotulos col-span-full mt-10 md:col-span-4 md:mt-0">
       <dl class="prancha__lista">
         {ANATOMIA.partes.map((p) => (
-          <div class="prancha__item">
+          <div class="prancha__item" data-parte={p.id}>
             <dt class="text-rotulo flex items-center gap-2 font-medium">
-              <span class="prancha__marca" aria-hidden="true"></span>
+              <span class="prancha__marca" aria-hidden="true" />
               {p.rotulo}
             </dt>
             <dd class="max-w-prancha text-corpo-estreito mt-2">
@@ -88,43 +103,101 @@ const nomeDoTratamento = (id: string) => TRATAMENTOS.find((t) => t.id === id)?.n
     padding-block: var(--spacing-r-respiro);
   }
 
-  /* O render tem fundo bege claro e vive sobre o eucalipto. Duas saídas
-     foram testadas: dissolver a borda com máscara radial, que come o dente
-     junto com o fundo porque os dois têm luminância parecida — e assumir a
-     imagem como PRANCHA MONTADA, painel claro com fio de 1px sobre o verde.
-     A segunda é a que combina com o conceito e mantém o dente legível. */
-  .prancha__quadro {
+  .prancha {
+    position: relative;
+  }
+
+  /* Cobre a figura e a coluna dos rótulos: o fio atravessa as duas. */
+  .prancha__fios {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: visible;
+    z-index: 2;
+  }
+
+  /* O render tem fundo bege claro e vive sobre o eucalipto. Máscara radial
+     foi testada e descartada: come o dente junto com o fundo, porque os dois
+     têm luminância parecida. A saída é assumir a imagem como PRANCHA
+     MONTADA — painel claro com fio de 1px sobre o verde. */
+  .prancha__palco {
+    position: relative;
     max-width: 420px;
+    aspect-ratio: 520 / 650;
     background: var(--color-osso);
     border: 1px solid color-mix(in srgb, var(--color-linha) 55%, transparent);
     padding: 1.25rem;
   }
 
-  .prancha__imagem {
-    position: relative;
-  }
-
-  .prancha__quadro img {
-    width: 100%;
-    height: auto;
-  }
-
-  /* O único âmbar da página inteira. No passo 5 ele acende no hover e no
-     clique, e ganha o fio de 1px até o rótulo — o fio depende de posição
-     calculada em tempo de execução (vector.project), por isso não existe
-     ainda na versão estática. */
-  .prancha__ponto {
+  .prancha__estatica,
+  .prancha__canvas {
     position: absolute;
+    inset: 1.25rem;
+    width: calc(100% - 2.5rem);
+    height: calc(100% - 2.5rem);
+  }
+
+  .prancha__estatica {
+    object-fit: contain;
+    transition: opacity 600ms var(--ease-saida);
+  }
+
+  /* Quando o 3D assume, a imagem sai de cena mas continua no DOM: se o
+     contexto WebGL for perdido, ela volta. */
+  .prancha__palco[data-3d] .prancha__estatica {
+    opacity: 0;
+  }
+
+  .prancha__canvas {
+    display: block;
+  }
+
+  /* --- hotspot ---------------------------------------------------------
+     Botão de verdade. 44px de alvo de toque, com o ponto visível de 14px
+     desenhado no ::before — assim o alvo é confortável sem que a bolinha
+     fique enorme. */
+  .hotspot {
+    position: absolute;
+    width: 44px;
+    height: 44px;
+    margin: -22px 0 0 -22px;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    z-index: 3;
+  }
+
+  .hotspot::before {
+    content: '';
+    position: absolute;
+    inset: 50%;
     width: 14px;
     height: 14px;
     margin: -7px 0 0 -7px;
     border-radius: 50%;
     background: var(--color-ambar);
-    /* Anel escuro para o ponto não sumir sobre a parte clara do dente.
-       É `border`, não `box-shadow`: a página inteira roda com sombra zero
-       (BRIEF seção 5) e abrir exceção aqui abriria em todo lugar. */
     border: 2px solid var(--color-osso);
     box-sizing: border-box;
+    transition:
+      transform var(--tempo-hover) var(--ease-saida),
+      border-color var(--tempo-hover) var(--ease-saida);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .hotspot:hover::before {
+      transform: scale(1.4);
+    }
+  }
+
+  /* Estado ativo com TRÊS sinais, não um: o âmbar sozinho dá 3,1:1 contra o
+     eucalipto — passa como componente gráfico, mas é pouco para carregar a
+     informação sozinho. Ver PLANO-DESIGN.md seção 2. */
+  .hotspot[aria-pressed='true']::before {
+    transform: scale(1.5);
+    border-color: var(--color-ambar);
   }
 
   .prancha__lista {
@@ -135,10 +208,21 @@ const nomeDoTratamento = (id: string) => TRATAMENTOS.find((t) => t.id === id)?.n
   .prancha__item {
     padding-block: 1.4rem;
     border-top: 1px solid color-mix(in srgb, var(--color-linha) 45%, transparent);
+    transition: opacity var(--tempo-hover) var(--ease-saida);
   }
 
   .prancha__item:last-child {
     border-bottom: 1px solid color-mix(in srgb, var(--color-linha) 45%, transparent);
+  }
+
+  /* Quando uma parte está selecionada, as outras recuam. Nunca somem: o
+     texto continua legível e selecionável. */
+  .prancha[data-ativa] .prancha__item:not([data-ativa]) {
+    opacity: 0.45;
+  }
+
+  .prancha__item[data-ativa] .prancha__marca {
+    transform: scale(1.4);
   }
 
   .prancha__marca {
@@ -147,6 +231,7 @@ const nomeDoTratamento = (id: string) => TRATAMENTOS.find((t) => t.id === id)?.n
     border-radius: 50%;
     background: var(--color-ambar);
     flex: none;
+    transition: transform var(--tempo-hover) var(--ease-saida);
   }
 
   .ligacao {
@@ -159,5 +244,14 @@ const nomeDoTratamento = (id: string) => TRATAMENTOS.find((t) => t.id === id)?.n
 
   .ligacao:hover {
     text-decoration-color: currentColor;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hotspot::before,
+    .prancha__marca,
+    .prancha__estatica,
+    .prancha__item {
+      transition: none;
+    }
   }
 </style>

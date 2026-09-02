@@ -68,7 +68,15 @@ console.log('com movimento:');
 
   await pg.waitForTimeout(1200);
   const alturas = [];
-  await pg.locator('details.item').first().locator('summary').click();
+  // `locator.click()` espera o elemento ficar estável, e com a seção do
+  // dente pinada nada fica parado — a espera consumia a animação inteira
+  // antes da primeira amostra. Disparar direto no DOM é o que este teste
+  // precisa: ele mede a animação, não a interação.
+  await pg.evaluate(() =>
+    document.querySelector('details.item summary').dispatchEvent(
+      new MouseEvent('click', { bubbles: true, cancelable: true })
+    )
+  );
   for (let i = 0; i < 5; i++) {
     alturas.push(await pg.evaluate(() =>
       Math.round(document.querySelector('details.item .item__corpo')?.getBoundingClientRect().height ?? 0)));
@@ -77,8 +85,12 @@ console.log('com movimento:');
   diz(alturas[0] < alturas.at(-1) && alturas.at(-1) > 20, `accordion anima a altura (${alturas.join(' → ')})`);
   diz(await pg.evaluate(() => document.querySelector('details.item')?.open === true), 'e fica aberto no fim');
 
-  await pg.locator('details.item').nth(2).locator('summary').click();
-  await pg.waitForTimeout(900);
+  await pg.evaluate(() =>
+    document.querySelectorAll('details.item summary')[2].dispatchEvent(
+      new MouseEvent('click', { bubbles: true, cancelable: true })
+    )
+  );
+  await pg.waitForTimeout(1200);
   diz(await pg.evaluate(() => document.querySelectorAll('details.item[open]').length) === 1,
     'abrir um fecha o outro');
   diz(scripts.some((s) => s.startsWith('movimento')), 'o bundle de movimento é baixado');
