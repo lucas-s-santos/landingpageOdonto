@@ -27,3 +27,6 @@ desktop.ini
 .vscode/*
 !.vscode/extensions.json
 .idea/
+
+# screenshots do passo 6
+screenshots/

@@ -1,6 +1,6 @@
-# HANDOFF — retomando o projeto em outra máquina
+# HANDOFF — estado do projeto e como retomar
 
-Escrito em 01/09/2026, no fim da sessão do passo 1.
+Atualizado em 01/09/2026, no fim da sessão do passo 2.
 Leia este arquivo primeiro. Ele diz onde o projeto parou e o que fazer em seguida.
 
 ---
@@ -9,19 +9,44 @@ Leia este arquivo primeiro. Ele diz onde o projeto parou e o que fazer em seguid
 
 | Passo (ordem de trabalho do `CLAUDE.md`) | Estado |
 |---|---|
-| 1. Plano de design | **Escrito. Aguardando aprovação.** Está em `PLANO-DESIGN.md` |
-| 2. Scaffold Astro + Tailwind + tokens + fontes | não começou |
-| 3. Estrutura semântica com copy real, sem movimento | não começou |
+| 1. Plano de design | **Feito e aprovado.** Está em `PLANO-DESIGN.md` |
+| 2. Scaffold Astro + Tailwind + tokens + fontes | **Feito.** Build limpo, `astro check` sem erros |
+| 3. Estrutura semântica com copy real, sem movimento | **é o próximo** |
 | 4. Camada de movimento (`MOTION.md`) | não começou |
 | 5. Cena 3D do dente sob demanda | não começou |
 | 6. Screenshot 1440/390 + autocrítica contra a seção 9 | não começou |
 
-**Não existe código de aplicação ainda.** Não há `package.json`, não há `src/`. O que
-está no repositório é briefing, assets e o plano.
+### Decisões que estavam pendentes, agora fechadas
+
+- **Copy da abertura: A.** "Antes de tratar, a gente explica o que está acontecendo."
+- **Header: com CTA.** Mesmo verbo, mesma cor, mesmo destino do CTA principal.
+- **Fontes: Cabinet Grotesk + Switzer, ambas do Fontshare,** sob ITF Free Font License.
+  O zip do Befonts foi removido do repositório. Cópia da licença em
+  `public/fonts/LICENCA-Fontshare-FFL.txt`.
+
+### O que o passo 2 entregou
+
+- Astro 7.2.10 + Tailwind 4.1 (config em CSS, via `@theme` — não há `tailwind.config.mjs`)
+- `src/styles/tokens.css` — os seis tokens com papel e teto documentados, a escala
+  tipográfica, o ritmo vertical, a grade e as regras de base (sombra zero, raio zero,
+  foco visível, `prefers-reduced-motion`)
+- `src/layouts/Base.astro` — head, canonical, preload só do display
+- `src/pages/index.astro` — **página de verificação de tokens, não é a landing page.**
+  O passo 3 substitui o conteúdo dela.
+- `scripts/screenshot.mjs` + `npm run shot` — fotografa em 1440 e 390 e mede estouro
+  horizontal em 360px. É a ferramenta do passo 6, já pronta.
+- `_origem/` — material bruto (OBJ, GLB sem Draco, MP4 de render) fora do build
+
+**Verificado na tela, não só no build:** as quatro fontes carregam do arquivo local,
+`background` sai em `rgb(239,237,230)`, texto em `rgb(28,33,31)`, abertura em 80px peso
+500 Cabinet Grotesk, e o estouro horizontal é 0px tanto em 390px quanto em 360px.
 
 ---
 
-## Parte 1 — Preparar a máquina nova
+## Parte 1 — Preparar outra máquina
+
+O passo 2 acabou sendo feito na máquina original. Esta parte continua valendo para
+quando você trocar de computador.
 
 ### 1.1 Clonar
 
@@ -37,13 +62,13 @@ repositório antes. Uma pasta local simples (`~/projetos/` ou `C:\projetos\`) ev
 ### 1.2 Conferir o que precisa estar instalado
 
 ```bash
-node -v      # precisa ser 18.20+ ou 20.3+ ou 22+ (exigência do Astro 5)
+node -v      # precisa ser 22.12+ — é o engine declarado pelo Astro 7
 npm -v
 git --version
 ```
 
-Na máquina antiga havia Node 20 e Git 2.54. Se o Node novo for mais velho que 18.20,
-instale antes de qualquer coisa.
+A máquina original tem Node 24.15 e Git 2.54. Depois de clonar, rode `npm install` e
+`npx playwright install chromium`.
 
 ### 1.3 Identidade do git
 
@@ -55,10 +80,10 @@ git config user.email "lucassilvadossantos2005@gmail.com"
 O push é por HTTPS. Na máquina anterior o Git Credential Manager já estava autenticado;
 na nova ele vai abrir o login do GitHub no primeiro `git push`.
 
-### 1.4 ffmpeg — instale, vai precisar
+### 1.4 ffmpeg — instale, continua pendente
 
-A máquina anterior **não tinha ffmpeg**, e isso bloqueou três tarefas de vídeo que estão
-pendentes (ver Parte 4).
+**Não há ffmpeg em nenhuma das máquinas até agora**, e isso bloqueia as tarefas de vídeo
+listadas na Parte 4.3.
 
 ```bash
 winget install Gyan.FFmpeg          # Windows
@@ -67,63 +92,50 @@ winget install Gyan.FFmpeg          # Windows
 
 Feche e reabra o terminal depois, para o PATH atualizar. Confira com `ffmpeg -version`.
 
+Sem ffmpeg dá para *inspecionar* vídeo (foi assim que os três foram analisados: frames
+extraídos pelo decodificador do Windows via WPF MediaPlayer), mas não dá para editar.
+
 ---
 
-## Parte 2 — Quatro decisões que travam o passo 2
+## Parte 2 — Decisões (todas fechadas)
 
-O plano está pronto mas não foi aprovado. Antes de codar, decida:
+Ficam registradas aqui com o porquê. Nada aqui está pendente.
 
-### 2.1 Aprovar ou ajustar o `PLANO-DESIGN.md`
-Leia o arquivo inteiro. É a saída do passo 1.
+### 2.1 Plano de design — aprovado
+Está em `PLANO-DESIGN.md`, é a saída do passo 1.
 
-### 2.2 Fontes — **tem um problema de licença aqui, leia**
+### 2.2 Fontes — RESOLVIDO
 
-O `public/fonts/` tem dois zips. Um serve, o outro não:
+Ficou registrado porque é um erro fácil de repetir. O zip que estava em `public/fonts/`
+veio do **Befonts**, com licença `Personal Use Only` e sem `.woff2` — não servia para
+trabalho comercial. Foi substituído pelo pacote do **Fontshare**, sob ITF Free Font
+License, a mesma do Switzer.
 
-| Arquivo | Origem | Licença | Tem `.woff2`? | Serve? |
-|---|---|---|---|---|
-| `Switzer_Complete.zip` | Fontshare | ITF Free Font License | sim, 20 arquivos | **sim** |
-| `cabinet-grotesk-font-family.zip` | **Befonts** | **"Personal Use Only"** | **não, só `.otf`** | **NÃO** |
-
-O zip do Cabinet Grotesk veio do Befonts e o arquivo de licença dentro dele diz
-literalmente `License: Personal Use Only`. Este é trabalho comercial que vai ser vendido
-a um cliente — **não dá para usar esse arquivo**. Também não tem `.woff2`, só `.otf`,
-que é formato de desktop e não de web.
-
-**A correção é simples e não muda nada do plano:** o Cabinet Grotesk legítimo está no
-Fontshare, sob a mesma licença livre do Switzer, e lá o pacote vem com `.woff2`.
-
-Baixe de https://www.fontshare.com/fonts/cabinet-grotesk (botão "Download Family"),
-e apague o zip do Befonts do repositório.
-
-**Arquivos que o passo 2 precisa, e só eles:**
+Estão em `public/fonts/`, 78 KB no total:
 
 ```
-public/fonts/CabinetGrotesk-Regular.woff2     (do pacote WEB do Fontshare)
-public/fonts/CabinetGrotesk-Medium.woff2      (do pacote WEB do Fontshare)
-public/fonts/Switzer-Regular.woff2            já temos, dentro do zip em:
-                                              Switzer_Complete/Fonts/WEB/fonts/
-public/fonts/Switzer-Medium.woff2             mesma pasta, 20 KB
+CabinetGrotesk-Regular.woff2   20,8 KB
+CabinetGrotesk-Medium.woff2    20,5 KB
+Switzer-Regular.woff2          16,7 KB
+Switzer-Medium.woff2           20,3 KB
+LICENCA-Fontshare-FFL.txt      cópia da licença
 ```
 
-Os dois `.woff2` do Switzer somam 37 KB. Depois de extrair os quatro arquivos,
-**apague os zips** — o `Switzer_Complete.zip` sozinho tem 2,35 MB e nada disso pode ir
-para o deploy.
+Se precisar baixar de novo: https://www.fontshare.com/fonts/cabinet-grotesk e
+https://www.fontshare.com/fonts/switzer — usar a pasta `Fonts/WEB/fonts/` do zip.
 
-Se por algum motivo o Fontshare estiver fora do ar, a alternativa aprovada pelo
-`SETUP.md` é Bricolage Grotesque + Instrument Sans, também servidas localmente. Nesse
-caso a escala tipográfica do plano continua valendo, só troca a família.
-
-### 2.3 Header: com ou sem CTA?
+### 2.3 Header — com CTA (decidido)
 
 O plano coloca "Agendar avaliação" no header desde o topo, no desktop. É o mesmo verbo,
-mesma cor e mesmo destino do CTA principal — então não é CTA secundário. Mas o BRIEF é
-enfático sobre CTA único, então a decisão é sua. Alternativa: header só com o nome da
-clínica.
+mesma cor e mesmo destino do CTA principal — então não é CTA secundário, é repetição
+do CTA único. Numa página longa, dá saída a quem já decidiu.
 
-### 2.4 Abertura: copy A ou B?
+### 2.4 Abertura — copy A (decidida)
 
-Estão as duas na seção 8 do `PLANO-DESIGN.md`. Recomendação: A.
+> Antes de tratar, a gente explica o que está acontecendo.
+>
+> Você vai entender o seu caso antes de decidir qualquer coisa. Inclusive antes de
+> decidir se vai tratar aqui.
 
 ### 2.5 (opcional, mas move mais que qualquer outra coisa) Referências em `refs/`
 
@@ -134,33 +146,38 @@ decidido só por descrição escrita, que é o canal mais fraco.
 
 ---
 
-## Parte 3 — Passo 2: scaffold
+## Parte 3 — Passo 3: estrutura semântica (o próximo)
 
-Só depois das decisões acima.
+O scaffold está pronto e commitado. O passo 3 escreve as 9 seções com copy real,
+**sem nenhum movimento ainda**. O `CLAUDE.md` é explícito sobre não pular isto: página
+que nasce animada nasce quebrada no leitor de tela.
 
 ```bash
-npm create astro@latest . -- --template minimal --typescript relaxed --no-git
-npx astro add tailwind
-npm i gsap lenis three
-npm i -D @playwright/test
-npx playwright install chromium
+npm install          # se for outra máquina
+npm run dev          # http://localhost:4321
+npm run shot         # build + screenshot em 1440 e 390 + checagem de estouro
 ```
 
-O `create astro` vai reclamar que a pasta não está vazia (por causa de `public/`,
-dos `.md` e do `.git/`). **Escolha continuar** — ele não apaga o que já existe.
+O que o passo 3 entrega:
 
-Depois do scaffold, o passo 2 entrega:
+- [ ] `src/pages/index.astro` reescrito com as 9 seções do fluxo (BRIEF seção 4), na
+      ordem da objeção que cada uma vence
+- [ ] copy real em pt-BR, sentence case, voz ativa, frases curtas — e todo dado do
+      cliente como `[PREENCHER]`
+- [ ] header com o CTA (decidido em 2.3) e a barra fixa de mobile aparecendo após a
+      seção 3
+- [ ] os três vídeos em bloco contido, `autoplay muted loop playsinline` + poster,
+      com a classe `video-calibrado` (ver 4.2 sobre a correção de cor)
+- [ ] tratamentos como `<button>` de verdade com `aria-expanded` — a expansão tem que
+      funcionar por teclado antes de existir animação
+- [ ] seção 7 com a sequência numerada e durações reais em `<time>`
+- [ ] rodapé com responsável técnico e CRO como `[PREENCHER]`, e link externo ao
+      perfil do Google (link, nunca widget de avaliação republicada)
+- [ ] JSON-LD `Dentist` com os campos marcados `[PREENCHER]`
+- [ ] navegação inteira por Tab funcionando, foco visível em tudo
 
-- [ ] `src/styles/tokens.css` com os seis tokens do `PLANO-DESIGN.md` seção 2
-- [ ] `@font-face` dos quatro `.woff2`, `font-display: swap`, `preload` só no display
-- [ ] escala tipográfica da seção 3 do plano, em `theme.extend` do Tailwind
-- [ ] `box-shadow: none` global e `border-radius: 0` global, com 2px só em `input`/`select`
-- [ ] estilo de foco visível: 2px `--tinta` sobre osso, 2px `--osso` sobre eucalipto
-- [ ] reorganizar os arquivos de origem (ver Parte 4.1)
-
-**Não pule para o passo 3 sem isso.** E não comece movimento antes do passo 3 estar
-pronto — o `CLAUDE.md` é explícito: página que nasce animada nasce quebrada no leitor
-de tela.
+**Ainda não:** GSAP, Lenis, Three.js, cursor customizado, ímã. Isso é passo 4 e 5.
+As dependências já estão instaladas, mas não devem ser importadas ainda.
 
 ---
 
@@ -168,25 +185,24 @@ de tela.
 
 Coisas que já foram medidas e não precisam ser redescobertas.
 
-### 4.1 Arrumação de arquivos (fazer no começo do passo 2)
+### 4.1 Arrumação de arquivos — FEITO
 
-Estão na raiz do repositório, e são material de produção, não de build:
+O material bruto saiu da raiz e foi para `_origem/`, que fica fora do build (o Astro só
+empacota `src/` e `public/`). Os três MP4 foram renomeados no caminho: os nomes
+originais tinham maiúsculas e reticências Unicode, que dão problema em CI Linux.
+
+**Ainda sobra peso morto dentro de `public/`, que vai para o deploy:**
 
 ```
-dente-molar.obj      7,4 MB   fonte do modelo
-dente-molar.mtl               material do OBJ
-dente-molar.glb      1,25 MB  export sem Draco
-dente-3d.html                 teste solto de visualização
-Water_droplet_on_molar_202608312354.mp4              1,81 MB
-Water_droplet_sliding_on_molar_202609010008.mp4      1,07 MB
-Arranging_dental_instruments_on_…_202608312356.mp4   1,58 MB
+public/model/dente-molar.glb      1,05 MB   fallback sem Draco. O de produção é o
+                                            dente-molar-draco.glb, de 26 KB.
+public/video/hero-molar.{webm,mp4}          versão sem o dissolve de loop costurado
+public/video/texture-enamel.{webm,mp4}      idem
 ```
 
-Mover para `_origem/` (fora de `public/`, para não ir ao deploy). **Não apagar** — é o
-material bruto dos renders.
-
-Nota: o nome `Arranging_dental_instruments_on_…_202608312356.mp4` tem reticências
-Unicode (`…`). Funciona, mas dá dor de cabeça em CI Linux. Vale renomear na mudança.
+Somam ~2,4 MB que nenhuma seção da página referencia. Não afetam Lighthouse (o
+navegador não pede o que a página não usa), mas engordam o deploy. Decidir no passo 5
+se ficam como debug ou se saem para `_origem/`.
 
 ### 4.2 Os três vídeos foram analisados; o veredito
 
@@ -272,16 +288,15 @@ E as três regras inegociáveis:
 
 ---
 
-## Parte 6 — Como retomar a conversa amanhã
+## Parte 6 — Como retomar a conversa
 
-Na máquina nova, dentro da pasta do projeto:
+Dentro da pasta do projeto:
 
 ```
 Leia CLAUDE.md, BRIEF.md, MOTION.md, PLANO-DESIGN.md e HANDOFF.md.
-O passo 1 já está feito. [aprovo o plano / quero mudar X].
-Decisões: fontes = [...], header = [com/sem CTA], abertura = [A/B].
-Pode começar o passo 2.
+Passos 1 e 2 estão feitos. Pode começar o passo 3.
 ```
 
 Se quiser mudar algo do plano antes, diga o que muda — o `PLANO-DESIGN.md` é editável,
-não é contrato.
+não é contrato. A página que está em `src/pages/index.astro` hoje é só verificação de
+tokens; o passo 3 substitui o conteúdo dela inteiro, então não tem apego a ela.

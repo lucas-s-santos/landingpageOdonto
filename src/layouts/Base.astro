@@ -1,0 +1,44 @@
+---
+import '../styles/tokens.css';
+
+interface Props {
+  titulo: string;
+  descricao: string;
+}
+
+const { titulo, descricao } = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+---
+
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{titulo}</title>
+    <meta name="description" content={descricao} />
+    <link rel="canonical" href={canonical} />
+
+    {/* Só o display entra em preload: é a fonte do LCP. Pré-carregar as
+        quatro competiria com o vídeo da abertura pela banda inicial. */}
+    <link
+      rel="preload"
+      href="/fonts/CabinetGrotesk-Medium.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={titulo} />
+    <meta property="og:description" content={descricao} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:locale" content="pt_BR" />
+
+    <slot name="head" />
+  </head>
+
+  <body>
+    <slot />
+  </body>
+</html>

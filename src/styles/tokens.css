@@ -1,0 +1,283 @@
+@import 'tailwindcss';
+
+/* ==========================================================================
+   TOKENS — saída do passo 2. Ver PLANO-DESIGN.md seções 2, 3 e 4.
+
+   Regra geral: nada aqui é decoração. Cada token tem papel e teto de uso
+   documentado. Se for preciso uma cor nova, ela vem do BRIEF, não daqui.
+   ========================================================================== */
+
+@theme {
+  /* --- cor ------------------------------------------------------------
+     Os seis tokens do BRIEF, sem alterar valor.
+     Contraste medido (WCAG 2.1), já verificado:
+       tinta/osso ......... 13,6:1  AAA
+       eucalipto/osso ...... 8,6:1  AAA
+       osso/eucalipto ...... 8,6:1  AAA
+       tinta/carvalho ...... 6,9:1  AAA
+       linha/eucalipto ..... 6,2:1
+       ambar/eucalipto ..... 3,1:1  componente gráfico SÓ. nunca texto.
+       carvalho/eucalipto .. 4,3:1  reprova texto pequeno. não usar.
+       linha/osso .......... 1,4:1  decorativo apenas.
+     -------------------------------------------------------------------- */
+  --color-osso: #efede6; /* fundo padrão, ~70% da área */
+  --color-tinta: #1c211f; /* todo o texto sobre osso */
+  --color-eucalipto: #33473f; /* fundo de 2 seções + preenchimento do CTA */
+  --color-carvalho: #c6a47e; /* só superfície fotográfica. nunca UI. */
+  --color-linha: #c8ccc4; /* fio de 1px, sempre 1px */
+  --color-ambar: #b8862f; /* SÓ o hotspot ativo da seção 3 */
+
+  /* texto secundário sobre eucalipto. 5,9:1.
+     Existe porque carvalho sobre eucalipto reprova (4,3:1). */
+  --color-osso-suave: color-mix(in srgb, #efede6 78%, #33473f);
+
+  /* --- tipografia -----------------------------------------------------
+     Dois pesos por família (400 e 500) e nada mais.
+     Peso 700 em display grande é assinatura de template.
+     -------------------------------------------------------------------- */
+  --font-display: 'Cabinet Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --font-texto: 'Switzer', ui-sans-serif, system-ui, sans-serif;
+
+  --text-abertura: clamp(2.6rem, 6.8vw, 5rem);
+  --text-abertura--line-height: 0.98;
+  --text-abertura--letter-spacing: -0.022em;
+
+  --text-secao: clamp(1.85rem, 3.2vw, 2.9rem);
+  --text-secao--line-height: 1.06;
+  --text-secao--letter-spacing: -0.015em;
+
+  --text-tratamento: clamp(1.15rem, 1.6vw, 1.4rem);
+  --text-tratamento--line-height: 1.25;
+  --text-tratamento--letter-spacing: -0.005em;
+
+  --text-corpo: 1.0625rem;
+  --text-corpo--line-height: 1.6;
+
+  --text-corpo-estreito: 1rem;
+  --text-corpo-estreito--line-height: 1.62;
+
+  --text-rotulo: 0.875rem;
+  --text-rotulo--line-height: 1.35;
+
+  --text-rodape: 0.9375rem;
+  --text-rodape--line-height: 1.55;
+
+  /* --- ritmo vertical -------------------------------------------------
+     Deliberadamente irregular. O espaçamento igual entre seções é um dos
+     tells de página gerada. Ver PLANO-DESIGN.md seção 4.
+     -------------------------------------------------------------------- */
+  --spacing-r-encosta: 0px; /* tratamentos → textura */
+  --spacing-r-colapso: 56px; /* anatomia → tratamentos */
+  --spacing-r-curto: 96px; /* abertura → como atendemos */
+  --spacing-r-medio: 112px; /* quem atende → estrutura */
+  --spacing-r-longo: 128px; /* 1ª consulta → agendar */
+  --spacing-r-amplo: 152px; /* textura → quem atende */
+  --spacing-r-respiro: 184px; /* estrutura → 1ª consulta */
+  --spacing-r-maximo: 208px; /* como atendemos → anatomia */
+
+  /* --- grade ----------------------------------------------------------
+     12 colunas, gutter 24px. A margem lateral tem piso de 20px para
+     funcionar em 360px de largura (piso de qualidade do CLAUDE.md).
+     -------------------------------------------------------------------- */
+  --spacing-margem: clamp(20px, 6vw, 88px);
+  /* 24px é o gutter do plano e é o que vale no desktop. Abaixo de ~1090px ele
+     encolhe: 11 gutters de 24px comem 264px, o que estoura a largura útil de
+     um aparelho de 360px. */
+  --spacing-gutter: clamp(12px, 2.2vw, 24px);
+
+  /* --- medida de linha ------------------------------------------------ */
+  --container-corpo: 62ch;
+  --container-prancha: 54ch;
+
+  /* --- raio -----------------------------------------------------------
+     2px em campo de formulário. 0 em absolutamente todo o resto.
+     -------------------------------------------------------------------- */
+  --radius-campo: 2px;
+}
+
+/* ==========================================================================
+   FONTES — locais. Nada de CDN: custa ~300ms de LCP e a meta é Lighthouse 90.
+   Licença ITF Free Font License (Fontshare), uso comercial permitido.
+   Cópia da licença em public/fonts/LICENCA-Fontshare-FFL.txt
+   ========================================================================== */
+
+@font-face {
+  font-family: 'Cabinet Grotesk';
+  src: url('/fonts/CabinetGrotesk-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Cabinet Grotesk';
+  src: url('/fonts/CabinetGrotesk-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Switzer';
+  src: url('/fonts/Switzer-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Switzer';
+  src: url('/fonts/Switzer-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ==========================================================================
+   BASE
+   ========================================================================== */
+
+@layer base {
+  /* Sem sombra em lugar nenhum da página. A separação entre blocos é por
+     troca de cor de fundo e por espaço variável — nunca por sombra cinza
+     suave, que é item 4 da seção 9 do BRIEF. */
+  *,
+  *::before,
+  *::after {
+    box-shadow: none;
+    border-radius: 0;
+  }
+
+  html {
+    /* Lenis cuida do scroll suave no desktop. Deixar o nativo ligado junto
+       briga com ele. Sob reduced-motion o CSS abaixo devolve o comportamento. */
+    scroll-behavior: auto;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-osso);
+    color: var(--color-tinta);
+    font-family: var(--font-texto);
+    font-size: var(--text-corpo);
+    line-height: 1.6;
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Sentence case em 100% do texto, botão e rótulo incluídos.
+     Nenhum text-transform em lugar nenhum — item 5 da seção 9. */
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    text-transform: none;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  /* Números de duração na seção 7 e o CRO no rodapé alinham por tabular-nums.
+     Monoespaçada em rótulo de dado é item 9 da seção 9. */
+  time,
+  [data-numero] {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* --- foco -----------------------------------------------------------
+     Nunca outline: none. Nunca âmbar no foco: 3,1:1 não basta, e foco é
+     acessibilidade, não acento.
+     -------------------------------------------------------------------- */
+  :focus-visible {
+    outline: 2px solid var(--color-tinta);
+    outline-offset: 2px;
+  }
+
+  .sobre-escuro :focus-visible,
+  .sobre-escuro:focus-visible {
+    outline-color: var(--color-osso);
+  }
+
+  /* O cursor customizado esconde o nativo só no wrapper. Em campo de
+     formulário ele volta sempre — MOTION.md seção 1. */
+  input,
+  select,
+  textarea {
+    border-radius: var(--radius-campo);
+    font: inherit;
+    color: inherit;
+    cursor: auto;
+  }
+
+  img,
+  video,
+  canvas,
+  svg {
+    display: block;
+    max-width: 100%;
+  }
+
+  /* --- reduced motion --------------------------------------------------
+     Não é degradação: é uma versão completa e imóvel. MOTION.md seção 0.
+     -------------------------------------------------------------------- */
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* ==========================================================================
+   UTILITÁRIOS DO PROJETO
+   Poucos e nomeados pelo papel, não pela aparência.
+   ========================================================================== */
+
+@utility grade {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: var(--spacing-gutter);
+  padding-inline: var(--spacing-margem);
+}
+
+/* A primeira coluna é a margem da prancha: calha onde vivem os fios e os
+   rótulos anatômicos. Fora da seção 3 ela fica vazia de propósito — é o
+   vazio que faz a página parecer folha de estudo. */
+@utility calha {
+  grid-column: 1 / 2;
+}
+
+@utility fio {
+  border: 0;
+  border-top: 1px solid var(--color-linha);
+  height: 0;
+}
+
+/* Correção de cor dos vídeos. Medição do quadro inteiro:
+     --osso ................. desvio quente (R−B) +9
+     hero-molar-loop ........ +35
+     water-droplet-sliding .. +25
+   Sem isso o bloco de vídeo lê como retângulo colado por cima da página.
+   O valor foi calibrado para o hero; conferir nos outros dois no passo 3. */
+@utility video-calibrado {
+  filter: saturate(0.82) hue-rotate(-6deg) brightness(1.04);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .video-calibrado {
+    filter: saturate(0.82) hue-rotate(-6deg) brightness(1.04);
+  }
+}
