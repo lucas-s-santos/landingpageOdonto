@@ -51,13 +51,11 @@ import { CLINICA } from '../data/conteudo';
 <script>
   // PASSO 4 — camada de movimento.
   //
-  // A página inteira funciona sem ela: tudo nasce visível no HTML e o
-  // accordion abre e fecha por conta do <details>.
+  // A página inteira funciona sem ela: tudo nasce visível no HTML, a
+  // abertura anima em CSS e o accordion abre e fecha por conta do <details>.
   //
-  // Import dinâmico atrás de prefers-reduced-motion. GSAP + ScrollTrigger +
-  // SplitText + Lenis são 52 KB comprimidos, e quem pediu menos movimento
-  // não deveria pagar por eles. Assim "versão completa e estática" deixa de
-  // ser uma promessa e passa a ser 0 byte de JavaScript de animação.
+  // O módulo em si é pequeno e sem biblioteca. Ele é que decide adiar o
+  // pedaço caro (GSAP, ScrollTrigger, Lenis) e só no desktop.
   if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
     import('../scripts/movimento');
   }

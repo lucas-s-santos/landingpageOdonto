@@ -4,6 +4,13 @@ import tailwindcss from '@tailwindcss/vite';
 
 // https://astro.build/config
 export default defineConfig({
+  build: {
+    // O CSS da página inteira dá ~6 KB comprimido. Como <link> ele é uma
+    // requisição bloqueante a mais antes do primeiro paint — o Lighthouse
+    // media 320 ms de atraso. Embutido no HTML, some a ida e volta.
+    inlineStylesheets: 'always',
+  },
+
   // [PREENCHER] trocar pelo domínio real antes do deploy.
   // Usado pelo canonical e pelo JSON-LD Dentist.
   site: 'https://clinicademo.calmdev.com.br',

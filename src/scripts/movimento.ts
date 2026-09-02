@@ -3,396 +3,350 @@
  *
  * Duas famílias, com regras opostas:
  *
- *   Movimento por ação da pessoa (mouse, clique, arraste) — pode estar em
+ *   Movimento por ação da pessoa (mouse, clique, arraste): pode estar em
  *   todo lugar. É resposta.
  *
- *   Movimento automático (acontece sozinho ao rolar) — quase proibido. Dois
- *   momentos na página inteira: a abertura, e a máscara dos títulos de seção.
- *   Fade-and-slide-up genérico em seção que entra na viewport é o tell número
- *   um de página gerada. Não existe aqui.
+ *   Movimento automático (acontece sozinho ao rolar): quase proibido. Dois
+ *   momentos na página inteira — a abertura, que é CSS puro e vive em
+ *   `Abertura.astro`, e a cascata dos fios da prancha. Fade-and-slide-up
+ *   genérico em cada seção que entra na viewport é o tell número um de
+ *   página gerada, e não existe aqui.
  *
- * O que roda em CSS e não está neste arquivo: hover, press e a troca de
- * estado dos botões e das linhas de tratamento. Regra da skill `animate` —
- * a ferramenta mais barata que resolve. GSAP para hover é desperdício, e CSS
- * roda fora da main thread.
+ * ARQUITETURA, e o porquê dela:
  *
- * A rotação do dente (MOTION §4) e a cascata dos fios (MOTION §5) moram em
- * `dente3d.ts`, carregado por import() dinâmico quando a seção se aproxima —
- * Three.js não pode estar no bundle inicial.
+ *   BASE (este arquivo, sem biblioteca) — revelação dos títulos de seção,
+ *   o accordion e o disparo da cena 3D. Roda em qualquer largura, com CSS,
+ *   IntersectionObserver e WAAPI.
+ *
+ *   DESKTOP (import dinâmico) — GSAP, ScrollTrigger e Lenis, que só existem
+ *   para cursor, ímã, parallax, scroll suave e o pin da seção do dente.
+ *   Nada disso roda no celular.
+ *
+ * A separação não é estética. Com GSAP no caminho do celular, o perfil
+ * mobile do Lighthouse dava performance 63–71, com 1,7 a 2,8 s de Total
+ * Blocking Time, e 72 dos 140 KB do bundle nunca eram usados naquele
+ * contexto. A regra da skill `animate` é a ferramenta mais barata que
+ * resolve — no celular, a mais barata é não ter biblioteca nenhuma.
  */
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { SplitText } from 'gsap/SplitText';
-import Lenis from 'lenis';
 
-gsap.registerPlugin(ScrollTrigger, SplitText);
+const REDUZIDO = matchMedia('(prefers-reduced-motion: reduce)');
+const DESKTOP = matchMedia('(min-width: 900px)');
 
-const mm = gsap.matchMedia();
-
-mm.add(
-  {
-    desktop: '(min-width: 900px) and (prefers-reduced-motion: no-preference)',
-    mobile: '(max-width: 899px) and (prefers-reduced-motion: no-preference)',
-    calmo: '(prefers-reduced-motion: reduce)',
-  },
-  (ctx) => {
-    const { desktop, calmo } = ctx.conditions as {
-      desktop: boolean;
-      mobile: boolean;
-      calmo: boolean;
-    };
-
-    // ------------------------------------------------------------------
-    // calmo: nenhum movimento. Não é degradação — é uma versão completa e
-    // estática. O HTML já nasce visível, então não há nada a desfazer.
-    // ------------------------------------------------------------------
-    if (calmo) return;
-
-    /**
-     * Funções de desmontagem.
-     *
-     * NÃO usar `ctx.add(fn)` para isto: no gsap.context o `add` EXECUTA a
-     * função na hora, não registra limpeza. Usá-lo aqui destruía o cursor,
-     * o Lenis e os ímãs no mesmo instante em que eram criados.
-     * A limpeza é o que este callback RETORNA — o GSAP a chama quando a
-     * media query deixa de casar.
-     */
-    const limpezas: (() => void)[] = [];
-
-    // ------------------------------------------------------------------
-    // 0. Lenis — scroll suave, só no desktop.
-    //    No celular ele atrapalha: briga com o scroll nativo e com o
-    //    endereço da barra que recolhe.
-    // ------------------------------------------------------------------
-    let lenis: Lenis | undefined;
-    if (desktop) {
-      lenis = new Lenis({ lerp: 0.09, wheelMultiplier: 1, syncTouch: false });
-      const raf = (t: number) => lenis!.raf(t * 1000);
-      gsap.ticker.add(raf);
-      gsap.ticker.lagSmoothing(0);
-      lenis.on('scroll', ScrollTrigger.update);
-      limpezas.push(() => {
-        gsap.ticker.remove(raf);
-        lenis!.destroy();
-      });
-    }
-
-    // ------------------------------------------------------------------
-    // 1. Cursor — um ponto de 10px que segue o mouse com atraso.
-    //    O atraso é o efeito inteiro: instantâneo não se sente.
-    //    Desktop apenas, e nunca sob ponteiro grosso.
-    // ------------------------------------------------------------------
-    if (desktop && matchMedia('(pointer: fine)').matches) {
-      const cursor = document.createElement('div');
-      cursor.className = 'cursor';
-      cursor.setAttribute('aria-hidden', 'true');
-      document.body.appendChild(cursor);
-      document.documentElement.classList.add('tem-cursor');
-
-      let mx = innerWidth / 2;
-      let my = innerHeight / 2;
-      let cx = mx;
-      let cy = my;
-
-      const mover = (e: MouseEvent) => {
-        mx = e.clientX;
-        my = e.clientY;
-      };
-      addEventListener('mousemove', mover, { passive: true });
-
-      const seguir = () => {
-        // 0.12 é o valor. 0.3 fica nervoso, 0.05 fica lento.
-        cx += (mx - cx) * 0.12;
-        cy += (my - cy) * 0.12;
-        gsap.set(cursor, { x: cx, y: cy });
-      };
-      gsap.ticker.add(seguir);
-
-      const escalar = (escala: number, vazado: boolean) =>
-        gsap.to(cursor, {
-          scale: escala,
-          duration: 0.3,
-          ease: 'power2.out',
-          borderWidth: vazado ? 1 : 0,
-          backgroundColor: vazado ? 'transparent' : 'currentColor',
-        });
-
-      const alvos: [string, number, boolean][] = [
-        ['a, button, summary, [data-ima]', 3.2, false],
-        ['video, img', 5, true],
-      ];
-      const limpar: (() => void)[] = [];
-      for (const [seletor, escala, vazado] of alvos) {
-        document.querySelectorAll<HTMLElement>(seletor).forEach((el) => {
-          const entrar = () => escalar(escala, vazado);
-          const sair = () => escalar(1, false);
-          el.addEventListener('mouseenter', entrar);
-          el.addEventListener('mouseleave', sair);
-          limpar.push(() => {
-            el.removeEventListener('mouseenter', entrar);
-            el.removeEventListener('mouseleave', sair);
-          });
-        });
-      }
-
-      limpezas.push(() => {
-        removeEventListener('mousemove', mover);
-        gsap.ticker.remove(seguir);
-        limpar.forEach((f) => f());
-        cursor.remove();
-        document.documentElement.classList.remove('tem-cursor');
-      });
-    }
-
-    // ------------------------------------------------------------------
-    // 2. Ímã — atração de poucos pixels. Sutil: se dá para perceber
-    //    claramente, está forte demais.
-    //    SÓ no CTA e nos hotspots. Em link de menu e ícone de rodapé
-    //    vira ruído.
-    // ------------------------------------------------------------------
-    if (desktop) {
-      const RAIO = 90;
-      const FORCA = 0.32;
-      document.querySelectorAll<HTMLElement>('[data-ima]').forEach((el) => {
-        const mover = (e: MouseEvent) => {
-          const r = el.getBoundingClientRect();
-          const dx = e.clientX - (r.left + r.width / 2);
-          const dy = e.clientY - (r.top + r.height / 2);
-          if (Math.hypot(dx, dy) < RAIO) {
-            gsap.to(el, { x: dx * FORCA, y: dy * FORCA, duration: 0.4, ease: 'power3.out' });
-          }
-        };
-        const soltar = () =>
-          gsap.to(el, { x: 0, y: 0, duration: 0.7, ease: 'elastic.out(1, 0.4)' });
-
-        el.addEventListener('mousemove', mover);
-        el.addEventListener('mouseleave', soltar);
-        limpezas.push(() => {
-          el.removeEventListener('mousemove', mover);
-          el.removeEventListener('mouseleave', soltar);
-          gsap.set(el, { x: 0, y: 0 });
-        });
-      });
-    }
-
-    // ------------------------------------------------------------------
-    // 3. Abertura — o único momento automático que roda no load.
-    //    Uma vez, e nunca mais.
-    //
-    //    Máscara de linha, não `opacity 0→1` com `translateY(30px)`.
-    //    A diferença entre parecer caro e parecer template mora aí.
-    //    As linhas já são elementos próprios no HTML (`.linha`), então
-    //    aqui é só embrulhar cada uma em overflow hidden.
-    // ------------------------------------------------------------------
-    const linhasTitulo = gsap.utils.toArray<HTMLElement>('.abertura__texto h1 .linha');
-    if (linhasTitulo.length) {
-      linhasTitulo.forEach((l) => l.classList.add('mascara'));
-
-      const tl = gsap.timeline({ defaults: { ease: 'expo.out' } });
-
-      tl.from('.abertura__video video', { scale: 1.06, duration: 1.6, ease: 'power2.out' }, 0)
-        .from(linhasTitulo, { yPercent: 100, duration: 0.9, stagger: 0.09 }, 0.2)
-        .from('.abertura__apoio', { opacity: 0, duration: 0.5, ease: 'power2.out' }, 0.7)
-        .from('.abertura .cta', { scale: 0.96, opacity: 0, duration: 0.5, ease: 'power2.out' }, 0.9);
-    }
-
-    // ------------------------------------------------------------------
-    //    No scroll da abertura: vídeo e título sobem em velocidades
-    //    diferentes. Velocidades diferentes = profundidade.
-    // ------------------------------------------------------------------
-    if (desktop) {
-      const abertura = document.querySelector('.abertura');
-      if (abertura) {
-        gsap
-          .timeline({ scrollTrigger: { trigger: abertura, start: 'top top', end: 'bottom top', scrub: true } })
-          .to('.abertura__video video', { yPercent: 12, ease: 'none' }, 0)
-          .to('.abertura__texto', { yPercent: 40, ease: 'none' }, 0);
-      }
-    }
-
-    // ------------------------------------------------------------------
-    // 8. Títulos de seção — máscara de linha, e SÓ nos títulos.
-    //    Nada mais no corpo da página aparece por scroll: parágrafo,
-    //    imagem e lista já nascem visíveis.
-    //
-    //    SplitText por linha (grátis no GSAP 3.13+). Se ela falhar por
-    //    algum motivo, o título continua visível — nada aqui esconde
-    //    conteúdo antes de saber que consegue revelá-lo.
-    // ------------------------------------------------------------------
-    const titulos = gsap.utils.toArray<HTMLElement>('h2');
-    titulos.forEach((titulo) => {
-      let split: SplitText | undefined;
-      try {
-        split = new SplitText(titulo, { type: 'lines', linesClass: 'linha-split' });
-      } catch {
-        return;
-      }
-      if (!split.lines.length) return;
-
-      split.lines.forEach((l) => (l as HTMLElement).classList.add('mascara'));
-
-      gsap.from(split.lines, {
-        yPercent: 100,
-        duration: 0.9,
-        stagger: 0.08,
-        ease: 'expo.out',
-        scrollTrigger: { trigger: titulo, start: 'top 82%', once: true },
-      });
-
-      limpezas.push(() => split?.revert());
-    });
-
-    // ------------------------------------------------------------------
-    // 6. Tratamentos — a expansão.
-    //    A marcação é <details>/<summary>, que já abre e fecha sozinha e
-    //    já funciona por teclado. Aqui a gente só intercepta para animar
-    //    a altura, e devolve o controle ao navegador no fim.
-    //
-    //    `height` é a exceção sancionada: não existe equivalente em
-    //    transform para um acordeão. Todo o resto da página anima só
-    //    transform e opacity.
-    // ------------------------------------------------------------------
-    document.querySelectorAll<HTMLDetailsElement>('details.item').forEach((item) => {
-      const cabeca = item.querySelector<HTMLElement>('summary');
-      const corpo = item.querySelector<HTMLElement>('.item__corpo');
-      if (!cabeca || !corpo) return;
-
-      let animando = false;
-
-      const abrir = () => {
-        item.open = true;
-        gsap.fromTo(
-          corpo,
-          { height: 0, opacity: 0 },
-          {
-            height: 'auto',
-            opacity: 1,
-            duration: 0.55,
-            ease: 'power3.inOut',
-            onStart: () => (animando = true),
-            onComplete: () => {
-              animando = false;
-              gsap.set(corpo, { clearProps: 'height' });
-              ScrollTrigger.refresh();
-            },
-          }
-        );
-      };
-
-      const fechar = (depois?: () => void) => {
-        gsap.to(corpo, {
-          height: 0,
-          opacity: 0,
-          duration: 0.45,
-          ease: 'power3.inOut',
-          onStart: () => (animando = true),
-          onComplete: () => {
-            animando = false;
-            item.open = false;
-            gsap.set(corpo, { clearProps: 'height,opacity' });
-            ScrollTrigger.refresh();
-            depois?.();
-          },
-        });
-      };
-
-      const aoClicar = (e: Event) => {
-        e.preventDefault();
-        if (animando) return;
-
-        if (item.open) {
-          fechar();
-          return;
-        }
-
-        // Abrir um fecha o outro.
-        const aberto = document.querySelector<HTMLDetailsElement>('details.item[open]');
-        if (aberto && aberto !== item) {
-          const outroCorpo = aberto.querySelector<HTMLElement>('.item__corpo');
-          if (outroCorpo) {
-            gsap.to(outroCorpo, {
-              height: 0,
-              opacity: 0,
-              duration: 0.45,
-              ease: 'power3.inOut',
-              onComplete: () => {
-                aberto.open = false;
-                gsap.set(outroCorpo, { clearProps: 'height,opacity' });
-              },
-            });
-          } else {
-            aberto.open = false;
-          }
-        }
-        abrir();
-      };
-
-      cabeca.addEventListener('click', aoClicar);
-      limpezas.push(() => {
-        cabeca.removeEventListener('click', aoClicar);
-        gsap.set(corpo, { clearProps: 'height,opacity' });
-      });
-    });
-
-    // ------------------------------------------------------------------
-    // 7. Parallax — só em dois lugares. Em mais que isso a página começa
-    //    a flutuar e a leitura sofre.
-    //    O vídeo da abertura já está acima; aqui fica a textura de esmalte.
-    // ------------------------------------------------------------------
-    if (desktop) {
-      gsap.utils.toArray<HTMLElement>('[data-parallax]').forEach((el) => {
-        const video = el.querySelector('video') ?? el;
-        gsap.to(video, {
-          yPercent: -parseFloat(el.dataset.parallax ?? '0') * 100,
-          ease: 'none',
-          scrollTrigger: { trigger: el, start: 'top bottom', end: 'bottom top', scrub: true },
-        });
-      });
-    }
-
-    // ------------------------------------------------------------------
-    // 4 e 5. A cena 3D do dente.
-    //
-    // Carregada sob demanda, quando #anatomia chega a 400px da viewport.
-    // Antes disso a página não baixa um byte de Three.js. A margem existe
-    // para o modelo estar pronto quando a seção aparece — carregar no
-    // momento exato em que entra na tela mostra a troca.
-    // ------------------------------------------------------------------
-    const anatomia = document.querySelector('#anatomia');
-    if (anatomia) {
-      let cena: { destruir(): void } | null = null;
-      let pedido = false;
-
-      const observador = new IntersectionObserver(
-        async ([entrada]) => {
-          if (!entrada.isIntersecting || pedido) return;
-          pedido = true;
-          observador.disconnect();
-          try {
-            const { montarDente } = await import('./dente3d');
-            cena = await montarDente({ desktop });
-          } catch (erro) {
-            // A prancha estática continua no lugar. Nada quebra.
-            console.warn('cena 3D não carregou:', erro);
-          }
-        },
-        { rootMargin: '400px' }
-      );
-      observador.observe(anatomia);
-
-      limpezas.push(() => {
-        observador.disconnect();
-        cena?.destruir();
-      });
-    }
-
-    return () => limpezas.forEach((f) => f());
-  }
-);
+/* ==========================================================================
+   BASE — sem biblioteca
+   ========================================================================== */
 
 /**
- * As fontes carregam com `font-display: swap`. Quando a Cabinet Grotesk
- * entra, a altura dos títulos muda e todo cálculo de posição do
- * ScrollTrigger feito antes disso fica errado.
+ * Títulos de seção: máscara de revelação, e SÓ nos títulos.
+ *
+ * Nada mais no corpo da página aparece por scroll — parágrafo, imagem e
+ * lista já nascem visíveis no HTML.
+ *
+ * A animação está no CSS; aqui só se decide quando. `clip-path` é a quarta
+ * propriedade sancionada ao lado de transform e opacity: não dispara layout
+ * nem paint. Com ela a máscara dispensa um wrapper por linha, e some a
+ * dependência da SplitText junto com o GSAP.
  */
-document.fonts?.ready.then(() => ScrollTrigger.refresh());
+function revelarTitulos() {
+  const titulos = [...document.querySelectorAll<HTMLElement>('h2')];
+  if (!titulos.length) return;
+
+  const observador = new IntersectionObserver(
+    (entradas) => {
+      for (const e of entradas) {
+        if (!e.isIntersecting) continue;
+        (e.target as HTMLElement).classList.add('revelado');
+        observador.unobserve(e.target);
+      }
+    },
+    // folga embaixo: o título revela um pouco antes de chegar ao meio da tela
+    { rootMargin: '0px 0px -18% 0px' }
+  );
+
+  for (const t of titulos) {
+    t.classList.add('revela');
+    observador.observe(t);
+  }
+}
+
+/**
+ * Tratamentos: a expansão.
+ *
+ * A marcação é `<details>/<summary>`, que já abre, fecha e funciona por
+ * teclado sozinha. Aqui só se intercepta para animar a altura, e o controle
+ * volta ao navegador no fim.
+ *
+ * `height` é a exceção tolerada — não existe equivalente em transform para
+ * um accordion. WAAPI em vez de biblioteca: dá controle programático com
+ * desempenho de CSS e custa zero KB.
+ */
+function prepararAccordion() {
+  const CURVA = 'cubic-bezier(0.77, 0, 0.175, 1)';
+  const ABRIR = 550;
+  const FECHAR = 450;
+
+  const animar = (el: HTMLElement, de: string, para: string, ms: number) =>
+    el.animate(
+      [
+        { height: de, opacity: de === '0px' ? 0 : 1 },
+        { height: para, opacity: para === '0px' ? 0 : 1 },
+      ],
+      { duration: ms, easing: CURVA }
+    );
+
+  const fechar = (alvo: HTMLDetailsElement, corpo: HTMLElement) => {
+    const a = animar(corpo, `${corpo.offsetHeight}px`, '0px', FECHAR);
+    a.onfinish = () => {
+      alvo.open = false;
+    };
+    return a;
+  };
+
+  for (const item of document.querySelectorAll<HTMLDetailsElement>('details.item')) {
+    const cabeca = item.querySelector<HTMLElement>('summary');
+    const corpo = item.querySelector<HTMLElement>('.item__corpo');
+    if (!cabeca || !corpo) continue;
+
+    let animando: Animation | null = null;
+
+    cabeca.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (animando?.playState === 'running') return;
+
+      if (item.open) {
+        animando = fechar(item, corpo);
+        return;
+      }
+
+      // Abrir um fecha o outro.
+      const aberto = document.querySelector<HTMLDetailsElement>('details.item[open]');
+      if (aberto && aberto !== item) {
+        const outro = aberto.querySelector<HTMLElement>('.item__corpo');
+        if (outro) fechar(aberto, outro);
+        else aberto.open = false;
+      }
+
+      item.open = true;
+      animando = animar(corpo, '0px', `${corpo.offsetHeight}px`, ABRIR);
+    });
+  }
+}
+
+/**
+ * Vídeo toca só quando está na tela.
+ *
+ * Os três tinham `autoplay`, então decodificavam ao mesmo tempo desde o
+ * primeiro instante — inclusive os dois que ficam milhares de pixels abaixo
+ * da dobra. Decodificar vídeo que ninguém está vendo gasta CPU, bateria e
+ * dados de graça.
+ *
+ * Tirar o `autoplay` também acertou uma regra do BRIEF que estava sendo
+ * descumprida sem que eu tivesse notado: este módulo não roda sob
+ * `prefers-reduced-motion`, então agora os vídeos ficam parados no poster,
+ * como a seção 7 do BRIEF manda.
+ *
+ * NOTA sobre uma conclusão que eu tirei e depois derrubei: cheguei a medir
+ * o vídeo da abertura custando 28 pontos de Lighthouse no celular e cheguei
+ * a desligá-lo lá. Estava errado — a flag `--use-angle=swiftshader`, que eu
+ * tinha copiado do teste de WebGL para o script de performance, força
+ * rasterização por software e encarece toda composição. Sem ela, a página
+ * com vídeo tocando no celular dá 97. O vídeo fica.
+ */
+function prepararVideos() {
+
+  const videos = [...document.querySelectorAll<HTMLVideoElement>('video[data-video]')];
+  if (!videos.length) return;
+
+  const observador = new IntersectionObserver(
+    (entradas) => {
+      for (const e of entradas) {
+        const v = e.target as HTMLVideoElement;
+        if (e.isIntersecting) {
+          // O HTML marca `preload="none"` nos três: assim o celular não baixa
+          // nem decodifica o primeiro frame de um vídeo que nunca vai tocar.
+          // Quem vai tocar liga o preload aqui, um instante antes.
+          if (v.preload !== 'auto') v.preload = 'auto';
+          // `play()` rejeita se o navegador bloquear; o poster fica e nada quebra.
+          v.play().catch(() => {});
+        } else {
+          v.pause();
+        }
+      }
+    },
+    { rootMargin: '100px' }
+  );
+
+  for (const v of videos) observador.observe(v);
+}
+
+/**
+ * A cena 3D do dente.
+ *
+ * Carregada sob demanda quando `#anatomia` chega a 400px da viewport. Antes
+ * disso a página não baixa um byte de Three.js. A margem existe para o
+ * modelo estar pronto quando a seção aparece: carregar no instante exato em
+ * que ela entra na tela mostraria a troca.
+ */
+function prepararDente() {
+  const anatomia = document.querySelector('#anatomia');
+  if (!anatomia) return;
+
+  let pedido = false;
+  const observador = new IntersectionObserver(
+    async ([entrada]) => {
+      if (!entrada.isIntersecting || pedido) return;
+      pedido = true;
+      observador.disconnect();
+      try {
+        const { montarDente } = await import('./dente3d');
+        await montarDente({ desktop: DESKTOP.matches });
+      } catch (erro) {
+        // A prancha estática continua no lugar. Nada quebra.
+        console.warn('cena 3D não carregou:', erro);
+      }
+    },
+    { rootMargin: '400px' }
+  );
+  observador.observe(anatomia);
+}
+
+/* ==========================================================================
+   DESKTOP — cursor, ímã, parallax, scroll suave
+   ========================================================================== */
+
+async function movimentoDesktop() {
+  const [{ default: gsap }, { ScrollTrigger }, { default: Lenis }] = await Promise.all([
+    import('gsap'),
+    import('gsap/ScrollTrigger'),
+    import('lenis'),
+  ]);
+  gsap.registerPlugin(ScrollTrigger);
+
+  // --- Lenis ---------------------------------------------------------
+  // No celular ele atrapalha: briga com o scroll nativo e com a barra de
+  // endereço que recolhe. Por isso vive só aqui.
+  const lenis = new Lenis({ lerp: 0.09, wheelMultiplier: 1, syncTouch: false });
+  gsap.ticker.add((t: number) => lenis.raf(t * 1000));
+  gsap.ticker.lagSmoothing(0);
+  lenis.on('scroll', ScrollTrigger.update);
+
+  // --- cursor --------------------------------------------------------
+  // Um ponto de 10px que segue o mouse com atraso. O atraso é o efeito
+  // inteiro: instantâneo não se sente.
+  if (matchMedia('(pointer: fine)').matches) {
+    const cursor = document.createElement('div');
+    cursor.className = 'cursor';
+    cursor.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(cursor);
+    document.documentElement.classList.add('tem-cursor');
+
+    let mx = innerWidth / 2;
+    let my = innerHeight / 2;
+    let cx = mx;
+    let cy = my;
+
+    addEventListener(
+      'mousemove',
+      (e) => {
+        mx = e.clientX;
+        my = e.clientY;
+      },
+      { passive: true }
+    );
+
+    gsap.ticker.add(() => {
+      // 0.12 é o valor. 0.3 fica nervoso, 0.05 fica lento.
+      cx += (mx - cx) * 0.12;
+      cy += (my - cy) * 0.12;
+      gsap.set(cursor, { x: cx, y: cy });
+    });
+
+    const escalar = (escala: number, vazado: boolean) =>
+      gsap.to(cursor, {
+        scale: escala,
+        duration: 0.3,
+        ease: 'power2.out',
+        borderWidth: vazado ? 1 : 0,
+        backgroundColor: vazado ? 'transparent' : 'currentColor',
+      });
+
+    for (const [seletor, escala, vazado] of [
+      ['a, button, summary, [data-ima]', 3.2, false],
+      ['video, img', 5, true],
+    ] as [string, number, boolean][]) {
+      document.querySelectorAll<HTMLElement>(seletor).forEach((el) => {
+        el.addEventListener('mouseenter', () => escalar(escala, vazado));
+        el.addEventListener('mouseleave', () => escalar(1, false));
+      });
+    }
+  }
+
+  // --- ímã -----------------------------------------------------------
+  // Atração de poucos pixels. Sutil: se dá para perceber claramente, está
+  // forte demais. Só no CTA e nos hotspots — em link de menu vira ruído.
+  const RAIO = 90;
+  const FORCA = 0.32;
+  document.querySelectorAll<HTMLElement>('[data-ima]').forEach((el) => {
+    el.addEventListener('mousemove', (e) => {
+      const r = el.getBoundingClientRect();
+      const dx = e.clientX - (r.left + r.width / 2);
+      const dy = e.clientY - (r.top + r.height / 2);
+      if (Math.hypot(dx, dy) < RAIO) {
+        gsap.to(el, { x: dx * FORCA, y: dy * FORCA, duration: 0.4, ease: 'power3.out' });
+      }
+    });
+    el.addEventListener('mouseleave', () =>
+      gsap.to(el, { x: 0, y: 0, duration: 0.7, ease: 'elastic.out(1, 0.4)' })
+    );
+  });
+
+  // --- parallax ------------------------------------------------------
+  // Só em dois lugares. Em mais que isso a página começa a flutuar e a
+  // leitura sofre.
+  const abertura = document.querySelector('.abertura');
+  if (abertura) {
+    gsap
+      .timeline({
+        scrollTrigger: { trigger: abertura, start: 'top top', end: 'bottom top', scrub: true },
+      })
+      .to('.abertura__video video', { yPercent: 12, ease: 'none' }, 0)
+      .to('.abertura__texto', { yPercent: 40, ease: 'none' }, 0);
+  }
+
+  gsap.utils.toArray<HTMLElement>('[data-parallax]').forEach((el) => {
+    gsap.to(el.querySelector('video') ?? el, {
+      yPercent: -parseFloat(el.dataset.parallax ?? '0') * 100,
+      ease: 'none',
+      scrollTrigger: { trigger: el, start: 'top bottom', end: 'bottom top', scrub: true },
+    });
+  });
+
+  // As fontes carregam com `font-display: swap`. Quando a Cabinet Grotesk
+  // entra, a altura dos títulos muda e todo cálculo de posição feito antes
+  // disso fica errado.
+  document.fonts?.ready.then(() => ScrollTrigger.refresh());
+}
+
+/* ==========================================================================
+   partida
+   ========================================================================== */
+
+if (!REDUZIDO.matches) {
+  revelarTitulos();
+  prepararVideos();
+  prepararAccordion();
+  prepararDente();
+
+  if (DESKTOP.matches) {
+    // Adiado para depois do primeiro paint: GSAP e Lenis custam cerca de
+    // 2 s de compilação e execução em CPU lenta, e nada deles responde a
+    // coisa alguma antes de a pessoa mexer o mouse ou rolar.
+    const iniciar = () => void movimentoDesktop();
+    if ('requestIdleCallback' in window) requestIdleCallback(iniciar, { timeout: 3000 });
+    else addEventListener('load', () => setTimeout(iniciar, 200), { once: true });
+  }
+}
+
+// Sem import nem export no topo (todos os imports pesados são dinâmicos),
+// o TypeScript trataria este arquivo como script e não como módulo.
+export {};

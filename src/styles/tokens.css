@@ -38,6 +38,11 @@
   --font-display: 'Cabinet Grotesk', ui-sans-serif, system-ui, sans-serif;
   --font-texto: 'Switzer', ui-sans-serif, system-ui, sans-serif;
 
+  /* O Tailwind declara `--font-mono` por padrão. Ele nunca é aplicado aqui,
+     mas ficava no CSS e fazia a varredura anti-clichê apontar monoespaçada
+     onde não havia. `initial` remove o token e o alarme falso junto. */
+  --font-mono: initial;
+
   --text-abertura: clamp(2.6rem, 6.8vw, 5rem);
   --text-abertura--line-height: 0.98;
   --text-abertura--letter-spacing: -0.022em;
@@ -383,15 +388,45 @@
    ========================================================================== */
 
 @layer components {
-  /* Máscara de linha. O JS adiciona esta classe às linhas do título da
-     abertura e às linhas que a SplitText cria nos títulos de seção.
-     Sem JS ela nunca é aplicada e o título fica visível, como deve. */
-  .mascara {
-    display: block;
-    overflow: hidden;
-    /* a descendente do 'g' e do 'ç' não pode ser cortada pela máscara */
-    padding-bottom: 0.12em;
-    margin-bottom: -0.12em;
+  /* --- revelação dos títulos de seção ---------------------------------
+     O JS só adiciona `.revela` (estado inicial) e depois `.revelado`
+     (dispara). A animação inteira é CSS, então roda fora da main thread —
+     e sem JS o título simplesmente já está visível, que é o correto.
+
+     `clip-path` é a quarta propriedade sancionada ao lado de transform e
+     opacity: não dispara layout nem paint. Com ela a máscara não precisa
+     de um wrapper por linha, o que dispensa a SplitText e o GSAP inteiro
+     no caminho do celular. */
+  .revela {
+    clip-path: inset(0 0 100% 0);
+    transform: translateY(0.22em);
+  }
+
+  .revelado {
+    animation: revelar-titulo 0.85s var(--ease-saida) both;
+  }
+
+  @keyframes revelar-titulo {
+    from {
+      clip-path: inset(0 0 100% 0);
+      transform: translateY(0.22em);
+    }
+    to {
+      clip-path: inset(-0.3em 0 -0.3em 0);
+      transform: none;
+    }
+  }
+
+  /* Reduced motion: o título nasce visível e nada se move. `.revela` nunca
+     chega a ser aplicada porque o módulo não roda, mas a regra fica aqui
+     como rede de segurança caso a preferência mude no meio da sessão. */
+  @media (prefers-reduced-motion: reduce) {
+    .revela,
+    .revelado {
+      clip-path: none;
+      transform: none;
+      animation: none;
+    }
   }
 
   /* --- cursor ---------------------------------------------------------

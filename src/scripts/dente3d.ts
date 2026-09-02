@@ -12,9 +12,16 @@
  *
  * Loop automático é decoração; rotação por scroll é a pessoa manipulando o
  * objeto. Por isso o dente nunca gira sozinho.
+ *
+ * SEM GSAP de propósito. O laço de render já roda a cada frame, então
+ * suavizar um valor em direção a um alvo é uma linha de interpolação — não
+ * justifica arrastar uma biblioteca de 150 KB para o caminho do celular, que
+ * é onde o piso de Lighthouse 90 é medido. O pin do desktop precisa do
+ * ScrollTrigger, e só ele é importado, só lá.
  */
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+/** Interpolação exponencial estável em qualquer taxa de quadros. */
+const lerp = (de: number, para: number, k: number) => de + (para - de) * k;
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
@@ -207,31 +214,52 @@ export async function montarDente(opcoes: { desktop: boolean }): Promise<Cena | 
   // `scrub: 1` — não `true`. O segundo de inércia é o que faz parecer um
   // objeto físico e não um valor ligado num slider.
   // ------------------------------------------------------------------
+  const secao = document.querySelector<HTMLElement>('#anatomia')!;
+  let progressoAlvo = 0;
   let progresso = 0;
-  const gatilho = ScrollTrigger.create(
-    opcoes.desktop
-      ? {
-          trigger: '#anatomia',
-          start: 'top top',
-          end: '+=220%',
-          pin: true,
-          scrub: 1,
-          onUpdate: (self) => (progresso = self.progress),
-        }
-      : {
-          // No mobile não há pin: a seção rola normal e o dente acompanha.
-          trigger: '#anatomia',
-          start: 'top bottom',
-          end: 'bottom top',
-          scrub: 1,
-          onUpdate: (self) => (progresso = self.progress),
-        }
-  );
+  let matarGatilho = () => {};
+
+  if (opcoes.desktop) {
+    // Pin com `scrub: 1` — não `true`. O segundo de inércia é o que faz
+    // parecer um objeto físico e não um valor ligado num slider.
+    const { ScrollTrigger } = await import('gsap/ScrollTrigger');
+    const { default: gsap } = await import('gsap');
+    gsap.registerPlugin(ScrollTrigger);
+    const st = ScrollTrigger.create({
+      trigger: secao,
+      start: 'top top',
+      end: '+=220%',
+      pin: true,
+      scrub: 1,
+      onUpdate: (self) => {
+        progressoAlvo = self.progress;
+        progresso = self.progress;
+      },
+    });
+    matarGatilho = () => st.kill();
+  } else {
+    // No mobile não há pin: a seção rola normal e o dente acompanha. Um
+    // ouvinte de scroll passivo custa menos que ScrollTrigger inteiro, e a
+    // inércia do `scrub` vira a interpolação do laço de render.
+    const medir = () => {
+      const r = secao.getBoundingClientRect();
+      const total = r.height + innerHeight;
+      progressoAlvo = Math.min(1, Math.max(0, (innerHeight - r.top) / total));
+    };
+    medir();
+    addEventListener('scroll', medir, { passive: true });
+    addEventListener('resize', medir, { passive: true });
+    matarGatilho = () => {
+      removeEventListener('scroll', medir);
+      removeEventListener('resize', medir);
+    };
+  }
 
   // ------------------------------------------------------------------
   // arraste — soma à rotação do scroll e volta a zero ao soltar
   // ------------------------------------------------------------------
   const manual = { y: 0, x: 0 };
+  let soltando = false;
   let arrastando = false;
   let ultimoX = 0;
   let ultimoY = 0;
@@ -244,6 +272,7 @@ export async function montarDente(opcoes: { desktop: boolean }): Promise<Cena | 
   };
   const mover = (e: PointerEvent) => {
     if (!arrastando) return;
+    soltando = false;
     manual.y += (e.clientX - ultimoX) * 0.006;
     manual.x += (e.clientY - ultimoY) * 0.004;
     manual.x = Math.max(-0.6, Math.min(0.6, manual.x));
@@ -258,7 +287,8 @@ export async function montarDente(opcoes: { desktop: boolean }): Promise<Cena | 
     } catch {
       /* o ponteiro já pode ter saído */
     }
-    gsap.to(manual, { y: 0, x: 0, duration: 1.2, ease: 'power2.out' });
+    // volta a zero por interpolação no laço, em ~1.2s
+    soltando = true;
   };
 
   canvas.addEventListener('pointerdown', comecar);
@@ -271,7 +301,10 @@ export async function montarDente(opcoes: { desktop: boolean }): Promise<Cena | 
   // seleção de parte
   // ------------------------------------------------------------------
   const olhar = { y: 0, x: 0 };
+  const olharAlvo = { y: 0, x: 0 };
   let ativa: string | null = null;
+
+  const opacidadeAlvo = new Map<Parte, number>();
 
   const selecionar = (id: string | null) => {
     ativa = id;
@@ -283,23 +316,14 @@ export async function montarDente(opcoes: { desktop: boolean }): Promise<Cena | 
     prancha.toggleAttribute('data-ativa', id !== null);
 
     const destino = id ? ANGULO[id] : null;
-    gsap.to(olhar, {
-      y: destino?.y ?? 0,
-      x: destino?.x ?? 0,
-      duration: 1.1,
-      ease: 'power3.inOut',
-    });
+    olharAlvo.y = destino?.y ?? 0;
+    olharAlvo.x = destino?.x ?? 0;
 
     // As outras partes recuam para 0.25 no material. Não somem: a forma
     // inteira do dente continua legível, que é o ponto da seção.
     const noAtivo = id ? ANCORA[id]?.no : null;
-    nos.forEach((malha, nome) => {
-      const mat = malha.material as THREE.MeshStandardMaterial;
-      gsap.to(mat, {
-        opacity: !noAtivo || nome === noAtivo ? 1 : 0.25,
-        duration: 0.6,
-        ease: 'power2.out',
-      });
+    nos.forEach((_malha, nome) => {
+      opacidadeAlvo.set(nome, !noAtivo || nome === noAtivo ? 1 : 0.25);
     });
   };
 
@@ -343,9 +367,26 @@ export async function montarDente(opcoes: { desktop: boolean }): Promise<Cena | 
     centroDe.set(nome, b.getCenter(new THREE.Vector3()));
   });
 
+  /**
+   * Retângulos dos rótulos, medidos uma vez por layout em vez de a cada
+   * frame. Ler `getBoundingClientRect` e escrever `style` alternadamente,
+   * quatro vezes por frame, força o navegador a recalcular o layout no meio
+   * do frame — é o "Forced reflow" que o Lighthouse aponta.
+   */
+  let rotulosCache: Map<string, DOMRect> | null = null;
+  const medirRotulos = () => {
+    rotulosCache = new Map(
+      itens.map((it) => [it.dataset.parte!, it.getBoundingClientRect()])
+    );
+  };
+  addEventListener('scroll', () => (rotulosCache = null), { passive: true });
+  addEventListener('resize', () => (rotulosCache = null), { passive: true });
+
   const posicionarSobreposicao = () => {
+    // fase de leitura
     const rPalco = palco.getBoundingClientRect();
     const rSvg = svgFios.getBoundingClientRect();
+    if (!rotulosCache) medirRotulos();
 
     for (const h of hotspots) {
       const id = h.dataset.hotspot!;
@@ -386,9 +427,8 @@ export async function montarDente(opcoes: { desktop: boolean }): Promise<Cena | 
       const fio = fios.get(id);
       if (!fio) continue;
 
-      const item = itens.find((it) => it.dataset.parte === id);
-      if (!item) continue;
-      const rItem = item.getBoundingClientRect();
+      const rItem = rotulosCache!.get(id);
+      if (!rItem) continue;
 
       const x1 = rPalco.left - rSvg.left + px;
       const y1 = rPalco.top - rSvg.top + py;
@@ -415,11 +455,15 @@ export async function montarDente(opcoes: { desktop: boolean }): Promise<Cena | 
       c.style.strokeDasharray = `${comprimento}`;
       c.style.strokeDashoffset = `${comprimento}`;
     });
-    gsap.to(caminhos, {
-      strokeDashoffset: 0,
-      duration: 0.8,
-      stagger: 0.14,
-      ease: 'power2.inOut',
+    // WAAPI, não biblioteca. A cascata é predeterminada e roda uma vez.
+    caminhos.forEach((c, i) => {
+      const comprimento = c.getTotalLength();
+      c.animate([{ strokeDashoffset: comprimento }, { strokeDashoffset: 0 }], {
+        duration: 800,
+        delay: i * 140,
+        easing: 'cubic-bezier(0.77, 0, 0.175, 1)',
+        fill: 'forwards',
+      });
     });
     // A cascata anima os FILHOS do item, não o item.
     //
@@ -429,23 +473,29 @@ export async function montarDente(opcoes: { desktop: boolean }): Promise<Cena | 
     // por último venceria — uma corrida, não um bug intermitente.
     // Separando os alvos, a cascata fica com os filhos e o estado fica com o
     // item. Visualmente idêntico, sem disputa.
-    const filhos = itens.flatMap((it) => [...it.children]);
-    gsap.from(filhos, {
-      opacity: 0,
-      x: -8,
-      duration: 0.5,
-      stagger: 0.14 / 2,
-      delay: 0.1,
-      clearProps: 'opacity,transform',
+    const filhos = itens.flatMap((it) => [...it.children]) as HTMLElement[];
+    filhos.forEach((f, i) => {
+      f.animate(
+        [
+          { opacity: 0, transform: 'translateX(-8px)' },
+          { opacity: 1, transform: 'none' },
+        ],
+        { duration: 500, delay: 100 + i * 70, easing: 'cubic-bezier(0.23, 1, 0.32, 1)' }
+      );
     });
   };
 
-  const gatilhoCascata = ScrollTrigger.create({
-    trigger: '#anatomia',
-    start: 'top 60%',
-    once: true,
-    onEnter: () => requestAnimationFrame(() => requestAnimationFrame(cascata)),
-  });
+  // IntersectionObserver em vez de ScrollTrigger: a cascata só precisa
+  // saber que a seção apareceu, e isso não justifica o plugin no mobile.
+  const obsCascata = new IntersectionObserver(
+    ([e]) => {
+      if (!e.isIntersecting) return;
+      obsCascata.disconnect();
+      requestAnimationFrame(() => requestAnimationFrame(cascata));
+    },
+    { rootMargin: '0px 0px -40% 0px' }
+  );
+  obsCascata.observe(secao);
 
   // ------------------------------------------------------------------
   // laço de render — para de desenhar quando a seção sai da tela
@@ -462,8 +512,29 @@ export async function montarDente(opcoes: { desktop: boolean }): Promise<Cena | 
   // com os rótulos apontando para faces que a pessoa não vê.
   const amplitude = opcoes.desktop ? 1.6 : 0.55;
 
+  let quadro = 0;
   const desenhar = () => {
+    quadro = requestAnimationFrame(desenhar);
     if (!visivel) return;
+
+    // Todas as suavizações do arquivo moram aqui. É o que substitui as
+    // tweens do GSAP: um alvo, e o valor caminhando até ele a cada frame.
+    progresso = lerp(progresso, progressoAlvo, 0.12);
+    olhar.y = lerp(olhar.y, olharAlvo.y, 0.07);
+    olhar.x = lerp(olhar.x, olharAlvo.x, 0.07);
+    if (soltando) {
+      manual.y = lerp(manual.y, 0, 0.06);
+      manual.x = lerp(manual.x, 0, 0.06);
+      if (Math.abs(manual.y) < 0.001 && Math.abs(manual.x) < 0.001) {
+        manual.y = manual.x = 0;
+        soltando = false;
+      }
+    }
+    nos.forEach((malha, nome) => {
+      const mat = malha.material as THREE.MeshStandardMaterial;
+      mat.opacity = lerp(mat.opacity, opacidadeAlvo.get(nome) ?? 1, 0.12);
+    });
+
     grupo.rotation.y = progresso * Math.PI * amplitude + manual.y + olhar.y;
     grupo.rotation.x = Math.sin(progresso * Math.PI) * 0.18 + manual.x + olhar.x;
     camera.position.z = 3.4 - progresso * 0.9;
@@ -471,7 +542,7 @@ export async function montarDente(opcoes: { desktop: boolean }): Promise<Cena | 
     renderer.render(cena, camera);
     posicionarSobreposicao();
   };
-  gsap.ticker.add(desenhar);
+  quadro = requestAnimationFrame(desenhar);
 
   // ------------------------------------------------------------------
   // contexto WebGL perdido: a imagem estática volta
@@ -480,19 +551,17 @@ export async function montarDente(opcoes: { desktop: boolean }): Promise<Cena | 
     e.preventDefault();
     palco.removeAttribute('data-3d');
     canvas.hidden = true;
-    gsap.ticker.remove(desenhar);
+    cancelAnimationFrame(quadro);
   };
   canvas.addEventListener('webglcontextlost', aoPerder);
 
-  ScrollTrigger.refresh();
-
   return {
     destruir() {
-      gsap.ticker.remove(desenhar);
+      cancelAnimationFrame(quadro);
       io.disconnect();
       ro.disconnect();
-      gatilho.kill();
-      gatilhoCascata.kill();
+      obsCascata.disconnect();
+      matarGatilho();
       canvas.removeEventListener('pointerdown', comecar);
       canvas.removeEventListener('pointermove', mover);
       canvas.removeEventListener('pointerup', soltar);

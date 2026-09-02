@@ -42,7 +42,7 @@ import { CLINICA } from '../data/conteudo';
   </div>
 
   <div class="grade mt-16">
-    <p class="col-span-full text-rotulo opacity-60">
+    <p class="col-span-full text-rotulo rodape__aviso">
       Este site tem finalidade informativa e não substitui consulta odontológica.
     </p>
   </div>
@@ -66,5 +66,12 @@ import { CLINICA } from '../data/conteudo';
   .rodape a {
     color: inherit;
     text-underline-offset: 4px;
+  }
+
+  /* Era `opacity: 0.6`, que dá #70736F sobre osso: 4,1:1, e AA pede 4,5:1
+     para texto pequeno. Medido pelo Lighthouse, não estimado. 0.72 sobe
+     para 5,3:1 e mantém o recuo visual. */
+  .rodape__aviso {
+    opacity: 0.72;
   }
 </style>

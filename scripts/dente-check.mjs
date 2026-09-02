@@ -13,7 +13,7 @@ import { readFile, stat } from 'node:fs/promises';
 import { join, extname, resolve, sep } from 'node:path';
 
 const RAIZ = resolve('dist');
-const PORTA = 4404;
+const PORTA = 4503;
 const MIME = { '.html':'text/html; charset=utf-8','.css':'text/css','.js':'text/javascript',
   '.woff2':'font/woff2','.jpg':'image/jpeg','.webp':'image/webp','.png':'image/png',
   '.mp4':'video/mp4','.webm':'video/webm','.glb':'model/gltf-binary','.wasm':'application/wasm' };
@@ -26,7 +26,23 @@ const servidor = createServer(async (req, res) => {
     res.end(await readFile(p));
   } catch { res.writeHead(404); res.end(); }
 });
-await new Promise((r) => servidor.listen(PORTA, r));
+// Falhar ALTO se a porta estiver ocupada.
+//
+// Antes isto era `listen(PORTA, r)` sem tratar erro, e o script usava a
+// porta 4321 — a mesma do `astro dev`. Com um servidor de dev rodando, as
+// capturas vinham DELE e não de `dist/`, com a barra de ferramentas do Astro
+// no meio da página. Um teste que mede a coisa errada é pior que nenhum.
+await new Promise((resolver, rejeitar) => {
+  servidor.once('error', (e) =>
+    rejeitar(
+      new Error(
+        `não consegui subir o servidor de teste na porta ${PORTA} (${e.code}). ` +
+          `Há outro processo nela — talvez um \`astro dev\`. Encerre-o ou mude PORTA.`
+      )
+    )
+  );
+  servidor.listen(PORTA, () => resolver(undefined));
+});
 
 const navegador = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader'] });
 let falhou = false;

@@ -9,13 +9,13 @@ import { ABERTURA, CTA } from '../data/conteudo';
 <section class="abertura" aria-labelledby="abertura-titulo">
   <div class="abertura__video">
     <video
+      data-video
       class="video-calibrado"
       poster="/video/hero-molar-poster.jpg"
-      autoplay
       muted
       loop
       playsinline
-      preload="metadata"
+      preload="none"
       aria-hidden="true"
       tabindex="-1"
     >
@@ -28,7 +28,9 @@ import { ABERTURA, CTA } from '../data/conteudo';
     <h1 id="abertura-titulo" class="text-abertura">
       {
         ABERTURA.tituloLinhas.map((linha) => (
-          <span class="linha">{linha}</span>
+          <span class="linha">
+            <span>{linha}</span>
+          </span>
         ))
       }
     </h1>
@@ -47,6 +49,14 @@ import { ABERTURA, CTA } from '../data/conteudo';
     padding-block: 2rem 0;
   }
 
+  /* O `scale(1.06)` da animação de entrada empurra o vídeo ~22px para fora
+     da largura durante 1,6 s, e sem recorte isso vira uma barra de rolagem
+     horizontal piscando no carregamento. O contêiner corta; o zoom continua
+     igual. */
+  .abertura__video {
+    overflow: hidden;
+  }
+
   .abertura__video video {
     width: 100%;
     height: clamp(220px, 42vh, 340px);
@@ -58,6 +68,71 @@ import { ABERTURA, CTA } from '../data/conteudo';
      não uma promessa de caber em uma tira só. */
   .abertura__texto h1 .linha {
     display: block;
+    /* a máscara vive no CSS, não é mais adicionada por JS */
+    overflow: hidden;
+    padding-bottom: 0.12em;
+    margin-bottom: -0.12em;
+  }
+
+  /* --- a abertura anima em CSS, não em GSAP ---------------------------
+     Esta é a única animação automática do primeiro paint, e ela é
+     predeterminada: ninguém interage com ela. Animação CSS roda fora da
+     main thread e continua suave enquanto o navegador ainda está baixando
+     e compilando o resto.
+     Fazer isso em GSAP custava 5,2 s de bootup e 912 ms numa única tarefa
+     longa no perfil mobile do Lighthouse — medido, não suposto. */
+  @media (prefers-reduced-motion: no-preference) {
+    .abertura__texto h1 .linha > span {
+      display: block;
+      animation: subir 0.9s var(--ease-saida) both;
+    }
+
+    .abertura__texto h1 .linha:nth-child(1) > span {
+      animation-delay: 0.2s;
+    }
+    .abertura__texto h1 .linha:nth-child(2) > span {
+      animation-delay: 0.29s;
+    }
+    .abertura__texto h1 .linha:nth-child(3) > span {
+      animation-delay: 0.38s;
+    }
+
+    .abertura__video video {
+      animation: aproximar 1.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .abertura__apoio {
+      animation: aparecer 0.5s var(--ease-saida) 0.7s both;
+    }
+
+    .abertura .cta {
+      animation: assentar 0.5s var(--ease-saida) 0.9s both;
+    }
+  }
+
+  @keyframes subir {
+    from {
+      transform: translateY(100%);
+    }
+  }
+
+  @keyframes aproximar {
+    from {
+      transform: scale(1.06);
+    }
+  }
+
+  @keyframes aparecer {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes assentar {
+    from {
+      opacity: 0;
+      transform: scale(0.96);
+    }
   }
 
   @media (min-width: 900px) {

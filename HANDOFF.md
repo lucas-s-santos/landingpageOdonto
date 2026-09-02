@@ -1,6 +1,6 @@
 # HANDOFF — estado do projeto e como retomar
 
-Atualizado em 02/09/2026, no fim da sessão do passo 5.
+Atualizado em 02/09/2026, no fim da sessão do passo 6.
 Leia este arquivo primeiro. Ele diz onde o projeto parou e o que fazer em seguida.
 
 ---
@@ -14,7 +14,7 @@ Leia este arquivo primeiro. Ele diz onde o projeto parou e o que fazer em seguid
 | 3. Estrutura semântica com copy real, sem movimento | **Feito.** 9 seções, conformidade e a11y verificadas |
 | 4. Camada de movimento (`MOTION.md`) | **Feito**, menos o que depende do 3D |
 | 5. Cena 3D do dente sob demanda | **Feito.** Carrega sob demanda, verificada em navegador |
-| 6. Screenshot 1440/390 + autocrítica contra a seção 9 | **é o próximo** |
+| 6. Screenshot 1440/390 + autocrítica contra a seção 9 | **Feito.** Lighthouse 97/100/100/100 |
 
 ### Decisões que estavam pendentes, agora fechadas
 
@@ -197,78 +197,70 @@ decidido só por descrição escrita, que é o canal mais fraco.
 
 ---
 
-## Parte 3 — Passo 6: autocrítica (o próximo)
+## Parte 3 — O que falta para vender
 
-### O que o passo 5 entregou
+Os seis passos da ordem de trabalho estão feitos. O que resta não é código:
+é dado do cliente e material.
 
-`src/scripts/dente3d.ts`, carregado por `import()` dinâmico quando `#anatomia`
-chega a 400px da viewport — **nunca antes**, e isso é testado.
+### Bloqueia o deploy
 
-- GLTFLoader + DRACOLoader carregando o GLB de 26 KB
-- seção pinada no desktop com `scrub: 1`, giro de 1.6π e câmera aproximando
-- arraste do ponteiro somando à rotação, voltando a zero em 1.2s
-- quatro fios de 1px em SVG, com as pontas ancoradas em coordenadas 3D
-  projetadas e reposicionadas a cada frame
-- cascata dos fios por `stroke-dashoffset`, `once: true` — o segundo e
-  último momento automático da página
-- hotspots como `<button>` de verdade, com `aria-pressed`, funcionando por
-  teclado; ao ativar, a câmera anima até o ângulo daquela parte e as outras
-  caem para 0.25 no material
-- mobile sem pin, `low-power`, `antialias: false`, `pixelRatio` limitado a 2,
-  e o laço de render para quando a seção sai da tela
-- se o WebGL falhar ou o contexto for perdido, a imagem estática volta
+- [ ] **Preencher os 23 `[PREENCHER]`.** Estão todos em `src/data/conteudo.ts`
+      e no `astro.config.mjs` (o `site`). Nome da clínica, responsável
+      técnico, **número do CRO**, endereço, telefone, WhatsApp, horário e o
+      link do perfil no Google.
+- [ ] **Revisar a lista de tratamentos com o cliente.** A seção 3 do BRIEF
+      exige que especialidade só apareça se estiver registrada no CRO. Os sete
+      itens estão escritos como procedimento e área de atuação, que é o que a
+      clínica pode divulgar — mas a lista precisa bater com o que ela faz.
+- [ ] **Retratos da equipe.** Hoje são blocos `[PREENCHER retrato 4:5]`.
 
-### Peso na rede, por camada
+### Melhora, não bloqueia
+
+- [ ] `refs/` continua vazia
+- [ ] peso morto em `public/` (ver Parte 4.1)
+- [ ] posters em `.jpg`; em WebP economizariam ~18 KB
+
+### Resultado medido do passo 6
 
 ```
-primeira carga (HTML + CSS + portão + fonte) ....  33,9 KB
-  com prefers-reduced-motion: é só isso .........  33,9 KB
-  + camada de movimento (deferida) .............. +52,2 KB
-  + cena 3D, só ao chegar na seção 3 ............ +248,7 KB
+Lighthouse, perfil mobile, sobre o build de produção:
+  Performance     97
+  Accessibility  100
+  Best Practices 100
+  SEO            100
+
+  First Contentful Paint    1,5 s
+  Largest Contentful Paint  2,2 s
+  Total Blocking Time       120 ms
+  Cumulative Layout Shift   0
 ```
 
-### Cinco armadilhas encontradas, todas com o conserto no código
-
-1. **`gltf.scene.traverse` + `grupo.add(malha)` ao mesmo tempo.** `add` tira
-   a malha do pai, e mudar a árvore durante o `traverse` faz a lista de
-   filhos encolher enquanto está sendo percorrida — parte das malhas nunca é
-   visitada. Coletar primeiro, mover depois.
-2. **`catch` silencioso.** A cena falhava e a prancha simplesmente nunca
-   virava 3D, sem uma linha no console. Agora o motivo é logado.
-3. **Disputa de propriedade.** A cascata animava `opacity` no mesmo elemento
-   que o estado "parte selecionada" usa para recuar os outros. Quem
-   terminasse por último vencia — corrida, não bug intermitente. A cascata
-   passou a animar os *filhos* do item.
-4. **Foco invisível.** `.sobre-escuro :focus-visible` pinta o anel de osso,
-   mas a prancha é um painel **claro** dentro da seção escura: osso sobre
-   osso, contraste 1:1. Criada a classe `.sobre-claro` para ilhas claras.
-5. **Cópia do decodificador Draco em `public/`.** Desnecessária: o
-   `DRACOLoader` declara o caminho com `new URL(..., import.meta.url)` e o
-   Vite emite os arquivos sozinho. Manter a cópia manual duplicava o peso no
-   deploy e sairia de sincronia no primeiro `npm update three`.
-
-### O que o passo 6 entrega
-
-- [ ] `npm run verificar` passando (já passa)
-- [ ] Lighthouse ≥ 90 em performance no mobile — **ainda não medido**
-- [ ] autocrítica honesta contra a seção 9 do BRIEF, olhando os screenshots
-- [ ] rodar `critique` e `audit` da skill `impeccable`
-- [ ] revisar a lista de tratamentos com o cliente (a seção 3 do BRIEF exige
-      que especialidade só apareça se registrada no CRO)
-- [ ] decidir o peso morto de `public/` (ver Parte 4.1)
+Autocrítica contra a seção 9 do BRIEF, feita por varredura do HTML
+renderizado: os quinze padrões proibidos, limpos. Três alarmes se mostraram
+falsos positivos e estão registrados no commit — `serif` só aparece dentro de
+`sans-serif`, o único gradiente é a **máscara** do vídeo da abertura (máscara
+não é decoração), e `--font-mono` era um token padrão do Tailwind que nunca
+chegava a ser aplicado. O token foi removido para o alarme não se repetir.
 
 ### Comandos
 
 ```bash
 npm run dev            # http://localhost:4321
-npm run verificar      # build + CFO-196 + a11y + movimento + 3D + screenshots
+npm run verificar      # build + CFO-196 + a11y + movimento + 3D + Lighthouse + screenshots
 npm run conformidade   # só a varredura legal
 npm run a11y           # teclado, foco, títulos, JSON-LD
 npm run motion         # checagem final do MOTION.md
-npm run dente          # a cena 3D: carga sob demanda, render, hotspots
+npm run dente          # a cena 3D
+npm run lighthouse     # performance, perfil mobile
 npm run shot           # screenshots em 1440 e 390
 npx astro check        # tipos
 ```
+
+**Atenção:** os scripts de teste sobem servidor nas portas 4501–4504,
+**não** na 4321. Isso não é detalhe: enquanto usavam a 4321, um `astro dev`
+rodando em paralelo servia as capturas no lugar do `dist/`, com a barra de
+ferramentas do Astro no meio da página. Agora eles falham alto se a porta
+estiver ocupada, em vez de medir a página errada em silêncio.
 
 ---
 

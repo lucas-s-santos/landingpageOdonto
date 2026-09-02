@@ -16,9 +16,10 @@
     "shot": "astro build && node scripts/screenshot.mjs",
     "conformidade": "astro build && node scripts/conformidade.mjs",
     "a11y": "astro build && node scripts/acessibilidade.mjs",
-    "verificar": "astro build && node scripts/conformidade.mjs && node scripts/acessibilidade.mjs && node scripts/movimento-check.mjs && node scripts/dente-check.mjs && node scripts/screenshot.mjs",
+    "verificar": "astro build && node scripts/conformidade.mjs && node scripts/acessibilidade.mjs && node scripts/movimento-check.mjs && node scripts/dente-check.mjs && node scripts/lighthouse.mjs && node scripts/screenshot.mjs",
     "motion": "astro build && node scripts/movimento-check.mjs",
-    "dente": "astro build && node scripts/dente-check.mjs"
+    "dente": "astro build && node scripts/dente-check.mjs",
+    "lighthouse": "astro build && node scripts/lighthouse.mjs"
   },
   "dependencies": {
     "astro": "^7.2.10",
@@ -31,6 +32,7 @@
     "@playwright/test": "^1.62.1",
     "@tailwindcss/vite": "^4.1.18",
     "@types/three": "^0.185.4",
+    "lighthouse": "^13.4.1",
     "tailwindcss": "^4.1.18",
     "typescript": "^6.0.3"
   },

@@ -20,7 +20,7 @@ import { readFile, stat } from 'node:fs/promises';
 import { join, extname, resolve, sep } from 'node:path';
 
 const RAIZ = resolve('dist');
-const PORTA = 4403;
+const PORTA = 4502;
 const MIME = {
   '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 'text/javascript',
   '.woff2': 'font/woff2', '.jpg': 'image/jpeg', '.webp': 'image/webp',
@@ -35,7 +35,23 @@ const servidor = createServer(async (req, res) => {
     res.end(await readFile(p));
   } catch { res.writeHead(404); res.end(); }
 });
-await new Promise((r) => servidor.listen(PORTA, r));
+// Falhar ALTO se a porta estiver ocupada.
+//
+// Antes isto era `listen(PORTA, r)` sem tratar erro, e o script usava a
+// porta 4321 — a mesma do `astro dev`. Com um servidor de dev rodando, as
+// capturas vinham DELE e não de `dist/`, com a barra de ferramentas do Astro
+// no meio da página. Um teste que mede a coisa errada é pior que nenhum.
+await new Promise((resolver, rejeitar) => {
+  servidor.once('error', (e) =>
+    rejeitar(
+      new Error(
+        `não consegui subir o servidor de teste na porta ${PORTA} (${e.code}). ` +
+          `Há outro processo nela — talvez um \`astro dev\`. Encerre-o ou mude PORTA.`
+      )
+    )
+  );
+  servidor.listen(PORTA, () => resolver(undefined));
+});
 
 const url = `http://localhost:${PORTA}/`;
 const navegador = await chromium.launch();
@@ -50,20 +66,37 @@ console.log('com movimento:');
   pg.on('request', (q) => { if (q.resourceType() === 'script') scripts.push(q.url().split('/').pop()); });
   await pg.goto(url, { waitUntil: 'domcontentloaded' });
 
+  // A abertura anima em CSS: o elemento que se move é o <span> interno de
+  // cada `.linha`, e a `.linha` é a máscara com overflow hidden.
   const amostras = [];
   for (let i = 0; i < 7; i++) {
     amostras.push(await pg.evaluate(() =>
-      [...document.querySelectorAll('.abertura__texto h1 .linha')].map((l) =>
+      [...document.querySelectorAll('.abertura__texto h1 .linha > span')].map((l) =>
         Math.round(new DOMMatrixReadOnly(getComputedStyle(l).transform).m42))));
     await pg.waitForTimeout(160);
   }
   diz(amostras.some((a) => a.some((v) => Math.abs(v) > 2)),
     'a abertura desloca as linhas do título (máscara de linha, não fade)');
-  diz(amostras.at(-1).every((v) => v === 0), 'e todas terminam em zero');
-  diz(await pg.evaluate(() => !!document.querySelector('.abertura__texto h1 .linha.mascara')),
-    'a máscara é aplicada às linhas');
-  diz(await pg.evaluate(() => document.querySelectorAll('.linha-split.mascara').length > 0),
-    'títulos de seção têm linhas mascaradas');
+  // Esperar as animações TERMINAREM em vez de contar amostras: a última
+  // linha tem 0,38 s de atraso mais 0,9 s de duração, e sete amostras de
+  // 160 ms acabam antes disso.
+  await pg.evaluate(() =>
+    Promise.all(
+      [...document.querySelectorAll('.abertura__texto h1 .linha > span')]
+        .flatMap((l) => l.getAnimations())
+        .map((a) => a.finished.catch(() => {}))
+    )
+  );
+  const fim = await pg.evaluate(() =>
+    [...document.querySelectorAll('.abertura__texto h1 .linha > span')].map((l) =>
+      Math.round(new DOMMatrixReadOnly(getComputedStyle(l).transform).m42)));
+  diz(fim.every((v) => v === 0), `e todas terminam em zero (${fim.join(', ')})`);
+  diz(await pg.evaluate(() =>
+    [...document.querySelectorAll('.abertura__texto h1 .linha')].every(
+      (l) => getComputedStyle(l).overflow === 'hidden')),
+    'cada linha é uma máscara de verdade (overflow hidden)');
+  diz(await pg.evaluate(() => document.querySelectorAll('h2.revela').length > 0),
+    'títulos de seção entram no estado de revelação');
   diz(await pg.evaluate(() => !!document.querySelector('.cursor')), 'cursor existe no desktop');
 
   await pg.waitForTimeout(1200);
@@ -94,7 +127,54 @@ console.log('com movimento:');
   diz(await pg.evaluate(() => document.querySelectorAll('details.item[open]').length) === 1,
     'abrir um fecha o outro');
   diz(scripts.some((s) => s.startsWith('movimento')), 'o bundle de movimento é baixado');
+
+  // A revelação do título tem que ACONTECER, não só existir a classe.
+  await pg.evaluate(() => document.querySelector('#tratamentos h2')?.scrollIntoView({ block: 'center' }));
+  let revelou = true;
+  try {
+    await pg.waitForFunction(
+      () => document.querySelector('#tratamentos h2')?.classList.contains('revelado'),
+      null, { timeout: 4000 });
+  } catch { revelou = false; }
+  diz(revelou, 'o título revela ao entrar na viewport');
+  // Compara o estado ANTES e DEPOIS em vez de interpretar o formato do
+  // valor: o `clip-path` computado varia de forma entre navegadores, e o
+  // que importa é que ele deixou de cortar.
+  const antesDepois = await pg.evaluate(async () => {
+    const h = document.querySelector('#tratamentos h2');
+    if (!h) return null;
+    await Promise.all(h.getAnimations().map((a) => a.finished.catch(() => {})));
+    const depois = getComputedStyle(h).clipPath;
+    const sonda = document.createElement('h2');
+    sonda.className = 'revela';
+    sonda.style.position = 'absolute';
+    sonda.textContent = 'x';
+    h.parentElement.appendChild(sonda);
+    const antes = getComputedStyle(sonda).clipPath;
+    sonda.remove();
+    return { antes, depois };
+  });
+  diz(
+    !!antesDepois && antesDepois.antes !== antesDepois.depois,
+    `e a máscara abre: ${antesDepois?.antes} → ${antesDepois?.depois}`
+  );
+
+  // GSAP não pode estar no caminho do celular.
+  diz(scripts.some((s) => s.startsWith('gsap')), 'no desktop o GSAP é carregado');
   await pg.close();
+
+  const mob = await navegador.newPage({ viewport: { width: 390, height: 844 } });
+  const scriptsMob = [];
+  mob.on('request', (q) => { if (q.resourceType() === 'script') scriptsMob.push(q.url().split('/').pop()); });
+  await mob.goto(url, { waitUntil: 'networkidle' });
+
+  await mob.waitForTimeout(2500);
+  console.log('\nno celular:');
+  diz(!scriptsMob.some((s) => s.startsWith('gsap')), 'GSAP NÃO é baixado');
+  diz(!scriptsMob.some((s) => s.startsWith('lenis')), 'Lenis NÃO é baixado');
+  diz(scriptsMob.some((s) => s.startsWith('movimento')), 'a camada base é baixada');
+  diz(!(await mob.evaluate(() => !!document.querySelector('.cursor'))), 'não há cursor customizado');
+  await mob.close();
 }
 
 // --------------------------------------------------------- reduced motion

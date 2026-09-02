@@ -16,7 +16,7 @@ import { join, extname, resolve, sep } from 'node:path';
 
 const RAIZ = resolve('dist');
 const SAIDA = resolve(process.argv[2] ?? 'screenshots');
-const PORTA = 4321;
+const PORTA = 4501;
 
 const LARGURAS = [
   { nome: '1440', width: 1440, height: 900 },
@@ -62,7 +62,23 @@ const servidor = createServer(async (req, res) => {
 });
 
 await mkdir(SAIDA, { recursive: true });
-await new Promise((r) => servidor.listen(PORTA, r));
+// Falhar ALTO se a porta estiver ocupada.
+//
+// Antes isto era `listen(PORTA, r)` sem tratar erro, e o script usava a
+// porta 4321 — a mesma do `astro dev`. Com um servidor de dev rodando, as
+// capturas vinham DELE e não de `dist/`, com a barra de ferramentas do Astro
+// no meio da página. Um teste que mede a coisa errada é pior que nenhum.
+await new Promise((resolver, rejeitar) => {
+  servidor.once('error', (e) =>
+    rejeitar(
+      new Error(
+        `não consegui subir o servidor de teste na porta ${PORTA} (${e.code}). ` +
+          `Há outro processo nela — talvez um \`astro dev\`. Encerre-o ou mude PORTA.`
+      )
+    )
+  );
+  servidor.listen(PORTA, () => resolver(undefined));
+});
 
 const navegador = await chromium.launch();
 
@@ -126,7 +142,39 @@ for (const { nome, width, height } of LARGURAS) {
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth
     );
     console.log(`  estouro horizontal: ${estouro}px`);
+    if (estouro > 0) {
+      for (const c of await culpados(pagina)) console.log(`    passa da largura: ${c}`);
+    }
   }
+}
+
+/**
+ * Quem está passando da largura.
+ *
+ * Medir o estouro sem dizer de onde ele vem transforma o teste num alarme
+ * sem endereço — e foi o que aconteceu quando 2px apareceram do nada.
+ */
+async function culpados(pagina) {
+  return pagina.evaluate(() => {
+    const limite = document.documentElement.clientWidth;
+    const fora = [];
+    for (const el of document.querySelectorAll('body *')) {
+      const r = el.getBoundingClientRect();
+      if (r.width === 0 || r.height === 0) continue;
+      // Só o que passa à DIREITA. Elemento parado a -9999px (o link de
+      // pular para o conteúdo) não gera barra de rolagem e não é culpado.
+      if (r.right > limite + 0.5) {
+        const nome =
+          el.tagName.toLowerCase() +
+          (el.id ? '#' + el.id : '') +
+          (typeof el.className === 'string' && el.className.trim()
+            ? '.' + el.className.trim().split(/\s+/).slice(0, 3).join('.')
+            : '');
+        fora.push(`${nome}  left=${Math.round(r.left)} right=${Math.round(r.right)} (limite ${limite})`);
+      }
+    }
+    return fora.slice(0, 8);
+  });
 }
 
 // 360px é o piso declarado no CLAUDE.md. Conferir estouro, sem fotografar.
@@ -136,6 +184,9 @@ const estouro360 = await estreita.evaluate(
   () => document.documentElement.scrollWidth - document.documentElement.clientWidth
 );
 console.log(`\n  estouro horizontal em 360px: ${estouro360}px`);
+if (estouro360 > 0) {
+  for (const c of await culpados(estreita)) console.log(`    passa da largura: ${c}`);
+}
 
 await navegador.close();
 servidor.close();
