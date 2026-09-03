@@ -110,6 +110,21 @@ for (const { nome, width, height } of LARGURAS) {
   });
   await pagina.waitForLoadState('networkidle');
 
+  // Forçar o ESTADO FINAL de tudo que revela, e esperar assentar.
+  //
+  // A revelação dos títulos dispara por IntersectionObserver. No desktop o
+  // Lenis intercepta `window.scrollTo`, então a varredura acima não rola de
+  // verdade e os títulos só entram em cena quando o próprio Playwright rola
+  // para montar a captura de página inteira — no meio da foto. O resultado
+  // era um título cortado ao meio, que não existe na página real.
+  //
+  // A captura mostra o estado final. Quem prova que a animação ACONTECE é
+  // `npm run motion`, que mede o deslocamento quadro a quadro.
+  await pagina.evaluate(async () => {
+    for (const el of document.querySelectorAll('.revela')) el.classList.add('revelado');
+    await Promise.all(document.getAnimations().map((a) => a.finished.catch(() => {})));
+  });
+
   // O cursor customizado segue o mouse, e um screenshot não tem mouse: ele
   // fica congelado no meio da tela e vira um ponto escuro que não existe na
   // página real. Sai antes da foto.

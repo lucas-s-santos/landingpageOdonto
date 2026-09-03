@@ -44,13 +44,23 @@ export const EH_DEMO = MODO === 'demo';
  *    número tirado do nada.
  */
 const DEMO = {
-  nome: 'Clínica Marena',
-  responsavelTecnico: 'Helena Marena Ribeiro',
+  // "Clínica Marena" foi descartada: `Marena Odontologia & Bem Estar` é uma
+  // clínica REAL em São Paulo, com site, CNPJ e o handle `clinicamarena` no
+  // Facebook. Nome de clínica plausível quase sempre já existe no Brasil —
+  // "Vertente Odontologia", a segunda tentativa, existe no Rio. "Clínica
+  // Sobrado" não retorna nenhuma clínica odontológica no país, e o nome cai
+  // bem numa praça central de cidade do interior de Minas.
+  nome: 'Clínica Sobrado',
+  responsavelTecnico: 'Helena Ribeiro Castro',
   croResponsavel: 'CRO-MG 00.000',
-  endereco: 'Rua das Acácias, 240 — Centro',
-  cidade: 'Varginha',
+  // Endereço conferido: a Praça Getúlio Vargas fica no Centro de Alfenas e o
+  // CEP é 37130-073. Os consultórios que existem de verdade nela estão nos
+  // números 245, 262 e 329 — a numeração não chega perto de 1000, então este
+  // endereço não é de ninguém.
+  endereco: 'Praça Getúlio Vargas, 1000 — Centro',
+  cidade: 'Alfenas',
   uf: 'MG',
-  cep: '37002-000',
+  cep: '37130-073',
   // Telefone e WhatsApp são o MESMO número, e é um número real: o da
   // CalmDev. Numa demo isso é proposital — o dono do consultório clica em
   // "Agendar avaliação", o WhatsApp abre com a mensagem pronta e ela cai com
@@ -123,8 +133,14 @@ export const COMO_ATENDEMOS = {
 
 export const ANATOMIA = {
   titulo: 'O dente por dentro',
+  /**
+   * A objeção desta seção é "não entendo nada, vão me empurrar coisa"
+   * (BRIEF seção 4). A intro tem que começar tirando a culpa de quem lê, não
+   * mandando estudar. A versão anterior terminava em "vale conhecer as
+   * quatro regiões", que é professor passando dever de casa.
+   */
   intro:
-    'Quase todo tratamento depende de onde o problema está. A mesma dor pode ser uma coisa no esmalte e outra bem diferente na raiz. Vale conhecer as quatro regiões.',
+    'Você não precisa saber odontologia para decidir bem. Precisa saber onde está o problema, porque é isso que muda o tratamento. São quatro regiões, e cada uma avisa de um jeito diferente.',
   /**
    * `x` e `y` em porcentagem da imagem, medidos sobre o recorte em
    * public/image/anatomia-molar.webp.
@@ -138,7 +154,7 @@ export const ANATOMIA = {
       x: 48.1,
       y: 16.2,
       texto:
-        'É a camada de fora e a mais dura do corpo. Não tem nervo, por isso um problema que ainda está só aqui costuma não doer. É também por isso que dá para encontrar em exame antes de virar dor.',
+        'A camada de fora, e a mais dura do corpo. Não tem nervo: um problema que ainda está só aqui não dói. Por isso ele aparece em exame, e não em crise.',
       tratamento: 'limpeza',
     },
     {
@@ -147,7 +163,7 @@ export const ANATOMIA = {
       x: 41.0,
       y: 31.0,
       texto:
-        'Fica logo abaixo do esmalte e é cheia de canais finos que chegam até o nervo. Quando ela fica exposta, aparece aquela sensibilidade curta no gelado, no quente ou no doce.',
+        'Logo abaixo do esmalte, cheia de canais finos que chegam até o nervo. Quando fica exposta, dá aquela pontada curta no gelado, no quente ou no doce. A que passa rápido e volta sempre.',
       tratamento: 'restauracao',
     },
     {
@@ -156,7 +172,7 @@ export const ANATOMIA = {
       x: 47.0,
       y: 53.5,
       texto:
-        'É onde a coroa encontra a raiz, na linha da gengiva. É a região que mais sofre com escovação forte demais e com inflamação de gengiva.',
+        'Onde a coroa encontra a raiz, na linha da gengiva. É a região que mais sofre com escovação forte demais. Se a sua gengiva sangra quando você escova, é aqui que a gente olha primeiro.',
       tratamento: 'gengiva',
     },
     {
@@ -165,7 +181,7 @@ export const ANATOMIA = {
       x: 17.3,
       y: 70.8,
       texto:
-        'Ancora o dente no osso e guarda o canal, onde ficam o nervo e os vasos. Dor forte que aparece sozinha, principalmente à noite, costuma estar aqui.',
+        'Ancora o dente no osso e guarda o canal, onde ficam o nervo e os vasos. É a dor forte que aparece sozinha, sem você encostar em nada, e que costuma piorar quando você deita.',
       tratamento: 'canal',
     },
   ],
@@ -232,7 +248,7 @@ export const TRATAMENTOS = [
 
 const EQUIPE_DEMO = [
   {
-    nome: 'Helena Marena Ribeiro',
+    nome: 'Helena Ribeiro Castro',
     cro: 'CRO-MG 00.000',
     atuacao: 'Clínica geral e endodontia',
     sobre:

@@ -211,6 +211,23 @@ fictícios e assinando o trabalho.
 `cliente` — dados vazios, marcados `[PREENCHER]`, para ninguém publicar sem
 preencher. É o modo em que o projeto nasceu.
 
+**Endereço e nome, conferidos antes de usar.** A demo fica na Praça Getúlio
+Vargas, 1000, Centro de Alfenas, CEP 37130-073. Foi verificado: os
+consultórios que existem de verdade nessa praça estão nos números 245, 262 e
+329, então a numeração não chega perto de 1000 e o endereço não é de ninguém.
+
+O nome também. "Clínica Marena", a primeira tentativa, é uma clínica REAL em
+São Paulo, com site, CNPJ e o handle `clinicamarena` no Facebook. A segunda,
+"Vertente Odontologia", existe no Rio. Nome plausível de clínica quase sempre
+já existe no Brasil. "Clínica Sobrado" não retorna nenhuma clínica
+odontológica no país.
+
+**A demo leva `noindex`.** Ela usa uma cidade real e uma praça real: indexada,
+passaria a competir por buscas de Alfenas e a confundir quem procura dentista
+lá. Sai sozinho quando `MODO` vira `'cliente'`. Por isso o Lighthouse marca
+SEO 66 e a verificação aceita — mas só essa auditoria; qualquer outra falha de
+SEO continua reprovando.
+
 ### Duas coisas não são inventadas nem no demo
 
 Isto não é burocracia, e está no código com o motivo:

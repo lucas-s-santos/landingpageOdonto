@@ -399,8 +399,12 @@ export async function montarDente(opcoes: { desktop: boolean }): Promise<Cena | 
 
       // Profundidade: um ponto cuja âncora girou para trás do dente ainda
       // seria desenhado por cima, e a prancha passaria a mentir. Sem
-      // raycast por ponto por frame, que seria caro: compara a distância
-      // da âncora à câmera com a do centro do modelo. Se está atrás, some.
+      // raycast por ponto por frame, que seria caro: compara a distância da
+      // âncora à câmera com a do centro do modelo.
+      //
+      // Quem está atrás RECUA, não some. Sumir deixava a prancha pela metade
+      // — com o dente girado, dois dos quatro rótulos ficavam sem ponto e
+      // sem fio, e uma prancha anatômica incompleta não é uma prancha.
       const distanciaAncora = mundo.distanceTo(camera.position);
       const distanciaCentro = centroMundo
         .setFromMatrixPosition(grupo.matrixWorld)
@@ -416,13 +420,11 @@ export async function montarDente(opcoes: { desktop: boolean }): Promise<Cena | 
       h.style.left = `${(px / rPalco.width) * 100}%`;
       h.style.top = `${(py / rPalco.height) * 100}%`;
 
-      const oculto = atras || vetor.z > 1;
-      h.style.opacity = oculto ? '0' : '1';
-      // Sem alvo de clique quando invisível: um botão transparente que
-      // ainda recebe clique é armadilha, e continuaria na ordem do Tab
-      // apontando para uma parte que a pessoa não está vendo.
-      h.style.pointerEvents = oculto ? 'none' : '';
-      h.toggleAttribute('inert', oculto);
+      // Fora do campo de visão da câmera é o único caso que some de vez.
+      const foraDoQuadro = vetor.z > 1;
+      h.style.opacity = foraDoQuadro ? '0' : atras ? '0.4' : '1';
+      h.style.pointerEvents = foraDoQuadro ? 'none' : '';
+      h.toggleAttribute('inert', foraDoQuadro);
 
       const fio = fios.get(id);
       if (!fio) continue;
@@ -439,7 +441,7 @@ export async function montarDente(opcoes: { desktop: boolean }): Promise<Cena | 
       const xc = rPalco.right - rSvg.left + 24;
 
       fio.setAttribute('d', `M ${x1} ${y1} L ${xc} ${y1} L ${x2} ${y2}`);
-      fio.style.opacity = oculto ? '0' : '';
+      fio.style.opacity = foraDoQuadro ? '0' : atras ? '0.3' : '';
     }
   };
 

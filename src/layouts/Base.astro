@@ -1,6 +1,6 @@
 ---
 import '../styles/tokens.css';
-import { CLINICA } from '../data/conteudo';
+import { CLINICA, EH_DEMO } from '../data/conteudo';
 
 interface Props {
   titulo: string;
@@ -43,6 +43,14 @@ const jsonLd = {
     <meta name="description" content={descricao} />
     <link rel="canonical" href={canonical} />
     <meta name="theme-color" content="#efede6" />
+
+    {/*
+      A demo não pode ser indexada. Ela usa uma cidade real, uma praça real e
+      um nome de clínica que não existe — se o Google a indexar, ela passa a
+      competir por buscas de Alfenas e a confundir quem procura dentista lá.
+      Sai sozinho quando MODO vira 'cliente'.
+    */}
+    {EH_DEMO && <meta name="robots" content="noindex, nofollow" />}
 
     {/* Só o display entra em preload: é a fonte do LCP. Pré-carregar as
         quatro competiria com o vídeo da abertura pela banda inicial. */}
