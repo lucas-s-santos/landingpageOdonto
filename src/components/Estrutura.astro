@@ -2,14 +2,31 @@
 import { ESTRUTURA } from '../data/conteudo';
 ---
 
-<!-- SEÇÃO 6 — vence "é limpo? é seguro?"
-     Vídeo em bloco contido de 7 colunas, texto em 4, uma coluna de calha. -->
-<section class="grade mt-r-medio items-center" aria-labelledby="estrutura-titulo">
+{/*
+  SEÇÃO 6 — vence "é limpo? é seguro?"
+
+  Dois vídeos, porque a seção diz duas coisas diferentes e antes tinha
+  imagem para nenhuma delas. Cada um fica ao lado do texto que ele mostra:
+
+    a sala vazia acompanha o TÍTULO — "onde você vai sentar" é a cadeira
+    desocupada, ao pé da letra;
+
+    a embalagem selada sendo aberta acompanha o PARÁGRAFO DE ESTERILIZAÇÃO,
+    que descreve exatamente essa cena e até agora era só promessa escrita.
+
+  A legenda que existia sob o vídeo da embalagem foi removida: ela repetia o
+  parágrafo ao lado quase palavra por palavra.
+
+  CFO-196: mostrar estrutura física é permitido. O que a resolução proíbe é
+  procedimento em andamento e equipamento como apelo comercial — a sala está
+  vazia e nenhuma das duas cenas tem paciente ou boca.
+*/}
+<section class="grade mt-r-medio" aria-labelledby="estrutura-titulo">
   <div class="col-span-full md:col-span-7">
     <video
       data-video
-      class="video-calibrado estrutura__video"
-      poster="/video/clinic-room-poster.jpg"
+      class="estrutura__sala"
+      poster="/video/sala-vazia-poster.webp"
       muted
       loop
       playsinline
@@ -17,23 +34,51 @@ import { ESTRUTURA } from '../data/conteudo';
       aria-hidden="true"
       tabindex="-1"
     >
-      <source src="/video/clinic-room.webm" type="video/webm" />
-      <source src="/video/clinic-room.mp4" type="video/mp4" />
+      <source src="/video/sala-vazia.webm" type="video/webm" />
+      <source src="/video/sala-vazia.mp4" type="video/mp4" />
     </video>
   </div>
 
-  <div class="col-span-full mt-8 md:col-span-4 md:col-start-9 md:mt-0">
+  <div class="col-span-full mt-8 self-center md:col-span-4 md:col-start-9 md:mt-0">
     <h2 id="estrutura-titulo" class="text-secao">{ESTRUTURA.titulo}</h2>
-    <div class="max-w-prancha mt-6 grid gap-4">
+  </div>
+
+  {/* O segundo bloco desalinha do primeiro de propósito: a seção não é uma
+      grade de dois cards iguais. */}
+  <div class="col-span-full mt-12 md:col-span-4 md:col-start-3 md:mt-24">
+    <video
+      data-video
+      class="estrutura__selado"
+      poster="/video/instrumental-selado-poster.webp"
+      muted
+      loop
+      playsinline
+      preload="none"
+      aria-hidden="true"
+      tabindex="-1"
+    >
+      <source src="/video/instrumental-selado.webm" type="video/webm" />
+      <source src="/video/instrumental-selado.mp4" type="video/mp4" />
+    </video>
+  </div>
+
+  <div class="col-span-full mt-6 self-center md:col-span-5 md:col-start-8 md:mt-24">
+    <div class="max-w-prancha grid gap-4">
       {ESTRUTURA.paragrafos.map((p) => <p>{p}</p>)}
     </div>
   </div>
 </section>
 
 <style>
-  .estrutura__video {
+  .estrutura__sala {
     width: 100%;
     height: clamp(220px, 40vh, 420px);
+    object-fit: cover;
+  }
+
+  .estrutura__selado {
+    width: 100%;
+    height: clamp(200px, 30vh, 300px);
     object-fit: cover;
   }
 </style>

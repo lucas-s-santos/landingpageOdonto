@@ -19,7 +19,8 @@
     "verificar": "astro build && node scripts/conformidade.mjs && node scripts/acessibilidade.mjs && node scripts/movimento-check.mjs && node scripts/dente-check.mjs && node scripts/lighthouse.mjs && node scripts/screenshot.mjs",
     "motion": "astro build && node scripts/movimento-check.mjs",
     "dente": "astro build && node scripts/dente-check.mjs",
-    "lighthouse": "astro build && node scripts/lighthouse.mjs"
+    "lighthouse": "astro build && node scripts/lighthouse.mjs",
+    "video": "node scripts/preparar-videos.mjs"
   },
   "dependencies": {
     "astro": "^7.2.10",

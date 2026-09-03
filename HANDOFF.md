@@ -1,6 +1,6 @@
 # HANDOFF — estado do projeto e como retomar
 
-Atualizado em 02/09/2026, no fim da sessão do passo 6.
+Atualizado em 02/09/2026, depois da troca dos vídeos.
 Leia este arquivo primeiro. Ele diz onde o projeto parou e o que fazer em seguida.
 
 ---
@@ -14,7 +14,7 @@ Leia este arquivo primeiro. Ele diz onde o projeto parou e o que fazer em seguid
 | 3. Estrutura semântica com copy real, sem movimento | **Feito.** 9 seções, conformidade e a11y verificadas |
 | 4. Camada de movimento (`MOTION.md`) | **Feito**, menos o que depende do 3D |
 | 5. Cena 3D do dente sob demanda | **Feito.** Carrega sob demanda, verificada em navegador |
-| 6. Screenshot 1440/390 + autocrítica contra a seção 9 | **Feito.** Lighthouse 97/100/100/100 |
+| 6. Screenshot 1440/390 + autocrítica contra a seção 9 | **Feito.** Lighthouse 98/100/100/100 |
 
 ### Decisões que estavam pendentes, agora fechadas
 
@@ -131,20 +131,17 @@ git config user.email "lucassilvadossantos2005@gmail.com"
 O push é por HTTPS. Na máquina anterior o Git Credential Manager já estava autenticado;
 na nova ele vai abrir o login do GitHub no primeiro `git push`.
 
-### 1.4 ffmpeg — instale, continua pendente
+### 1.4 ffmpeg
 
-**Não há ffmpeg em nenhuma das máquinas até agora**, e isso bloqueia as tarefas de vídeo
-listadas na Parte 4.3.
+Já instalado na máquina original (`ffmpeg 9.0.1`). Numa máquina nova:
 
 ```bash
 winget install Gyan.FFmpeg          # Windows
 # ou: brew install ffmpeg           # macOS
 ```
 
-Feche e reabra o terminal depois, para o PATH atualizar. Confira com `ffmpeg -version`.
-
-Sem ffmpeg dá para *inspecionar* vídeo (foi assim que os três foram analisados: frames
-extraídos pelo decodificador do Windows via WPF MediaPlayer), mas não dá para editar.
+Feche e reabra o terminal depois, para o PATH atualizar. É o que faz
+`npm run video` funcionar.
 
 ---
 
@@ -270,83 +267,78 @@ Coisas que já foram medidas e não precisam ser redescobertas.
 
 ### 4.1 Arrumação de arquivos — FEITO
 
-O material bruto saiu da raiz e foi para `_origem/`, que fica fora do build (o Astro só
-empacota `src/` e `public/`). Os três MP4 foram renomeados no caminho: os nomes
-originais tinham maiúsculas e reticências Unicode, que dão problema em CI Linux.
+O material bruto saiu da raiz e foi para `_origem/`, que fica fora do build.
+Os MP4 originais foram renomeados: os nomes tinham maiúsculas e reticências
+Unicode, que dão problema em CI Linux.
 
-**Ainda sobra peso morto dentro de `public/`, que vai para o deploy:**
+O peso morto de `public/` também saiu:
+
+- `dente-molar.glb` (1,05 MB, o export sem Draco) → `_origem/`. Ninguém o
+  referenciava; o de produção é o `dente-molar-draco.glb`, de 26 KB
+- os vídeos substituídos → `_origem/video-antigo/`
+
+O deploy caiu de 7,65 MB para 6,60 MB.
+
+### 4.2 Vídeos — TROCADOS
+
+Os três originais saíram. O lote novo foi gerado no Google Flow a partir dos
+prompts em `https://claude.ai/code/artifact/f1f3d84a-521e-49d7-8bb6-fcdb22a6a44e`,
+e processado por `npm run video`.
+
+| slot | arquivo | loop | webm |
+|---|---|---|---|
+| abertura | `hero-molar` | dissolve 0,7 s | 87 KB |
+| faixa entre 4 e 5 | `esmalte` | dissolve 1,0 s | 189 KB |
+| seção 6, título | `sala-vazia` | pingue-pongue | 351 KB |
+| seção 6, esterilização | `instrumental-selado` | dissolve 0,9 s | 347 KB |
+
+**O que a troca resolveu**
+
+*A emenda do loop.* Nenhum gerador entrega loop que fecha. Medido antes e
+depois, numa escala em que 0 é emenda invisível:
 
 ```
-public/model/dente-molar.glb      1,05 MB   fallback sem Draco. O de produção é o
-                                            dente-molar-draco.glb, de 26 KB.
-public/video/hero-molar.{webm,mp4}          versão sem o dissolve de loop costurado
-public/video/texture-enamel.{webm,mp4}      idem
+hero-molar            9,2  →  0,41
+esmalte              29,2  →  1,72
+instrumental-selado  19,3  →  2,06
+sala-vazia           46,3  →  0,63
 ```
 
-Somam ~2,4 MB que nenhuma seção da página referencia. Não afetam Lighthouse (o
-navegador não pede o que a página não usa), mas engordam o deploy. Decidir no passo 5
-se ficam como debug ou se saem para `_origem/`.
+A sala tinha um travelling para dentro do quarto, e dissolve não resolve isso
+porque a escala muda. Ela usa pingue-pongue: toca de ida e volta, o que fecha
+exato e, num movimento lento, lê como respiração.
 
-### 4.2 Os três vídeos foram analisados; o veredito
+*A temperatura de cor.* Os assets antigos estavam entre +29 e +32 de desvio
+quente (R−B) contra +9 do fundo `--osso`. Os novos ficaram entre −1 e +15. A
+correção que faltava é assada no arquivo por `scripts/preparar-videos.mjs`, e
+**o `filter` de CSS foi removido** — ele custava cerca de 250 ms de
+renderização e não distinguia um vídeo do outro. A abertura precisava
+esquentar; a sala já estava no ponto.
 
-Não há ffmpeg na máquina antiga, então os frames foram extraídos pelo decodificador do
-Windows. Medições feitas:
+*O creme.* O `texture-enamel` mostrava creme sendo despejado e lia como
+sorvete numa página de dentista. Era o maior arquivo do site, 414 KB, para um
+bloco `aria-hidden` que não informava nada.
 
-**`Water_droplet_sliding_on_molar` (o vídeo novo, 1280×720, 8,000s, 24 fps, 1,07 MB)**
+**O que a troca acrescentou**
 
-É o melhor render dos três — o único que mostra a raiz inteira e a bifurcação, que é
-justamente a anatomia de que a seção 3 fala. Mas **não serve para a abertura**:
+A seção 6 dizia em texto que o instrumental sai da autoclave selado e que a
+embalagem é aberta na frente da pessoa, e não tinha imagem nenhuma disso —
+era só promessa escrita. Agora tem, e é a cena que mais constrói confiança
+entre as que o CFO-196 permite.
 
-1. **Não fecha o loop.** Em 0,04s o dente está de frente, duas raízes, câmera longe. Em
-   7,95s está girado ~35°, três raízes à vista, câmera perto. Com `loop` no `<video>`
-   vai ter um salto visível a cada 8 segundos. Os arquivos `-loop` de `public/video/`
-   têm dissolve costurado; este não tem.
-2. **O fundo briga com a paleta.** Fundo medido em `#DBD0C3`; o `--osso` é `#EFEDE6`.
-   Desvio quente (R−B) do vídeo: **+25**. Do `--osso`: **+9**. É um bege amarelado sobre
-   uma página que é neutro levemente frio — lê como retângulo sujo colado na página. E
-   bege quente é o item 1 da seção 9 do anti-clichê.
-3. **O objeto é pequeno no quadro** (~34% da largura, muito vazio em volta). É a
-   linguagem "render 3D em fundo de estúdio bege", exatamente o visual de banco de
-   imagem que o BRIEF quer evitar.
-4. **Tem faixa de áudio AAC.** O BRIEF manda todos sem áudio.
+**Não usados, e por quê:** em `_origem/video-flow/nao-usados/`. Um deles tem
+tripé de câmera visível ao fundo. O Flow também gerou a sala duplicada — os
+dois arquivos tinham o mesmo MD5.
 
-**Destino proposto:** o frame de ~6,0s (a gota chegando na bifurcação) vira o `poster`
-do canvas WebGL da seção 3 — é o que a pessoa vê enquanto o Three.js carrega sob
-demanda, e é o que ela vê sob `prefers-reduced-motion`. A imagem estática já conta a
-anatomia que a seção explica.
+### 4.3 Ferramentas de vídeo — ffmpeg instalado
 
-**`hero-molar-loop` (o que já está em `public/video/`, 7,209s, 173 frames, 0,28 MB)**
+`ffmpeg 9.0.1` via `winget install Gyan.FFmpeg`. O que era pendência agora é
+`npm run video`, que lê `_origem/video-flow/` e escreve `public/video/`:
+tira o áudio (o Veo gera junto), fecha o loop, corrige a cor, normaliza para
+1280×720 e gera `.webm`, `.mp4` e `-poster.webp`.
 
-Continua sendo a abertura. É um close cortado, o dente sangra para fora do quadro, a
-matéria preenche a tela. É matéria-prima, não "um objeto posando" — é o que o conceito
-de prancha anatômica pede.
-
-**Correção de cor: os dois precisam.** Medição do quadro inteiro:
-
-| | desvio quente (R−B) |
-|---|---|
-| `--osso` (token do BRIEF) | +9 |
-| `Water_droplet_sliding` | +25 |
-| `hero-molar-loop` | **+35** |
-
-O hero atual é o mais quente dos dois. No passo 2/3, aplicar um `filter` leve de
-matiz/saturação no `<video>`, calibrado até o fundo do vídeo bater no `--osso`. Sem
-isso, todo bloco de vídeo vai parecer colado por cima da página em vez de integrado.
-
-**Dado útil:** texto `--tinta` sobre a região do dente dá entre **6,6:1 e 7,7:1** em
-todos os frames medidos. Se em algum momento quisermos escrever por cima do vídeo, o
-contraste aguenta.
-
-### 4.3 Tarefas de vídeo que dependem do ffmpeg
-
-- [ ] remover a faixa de áudio do `Water_droplet_sliding` (é remux, `-c copy -an`, não
-      reencoda e não perde qualidade)
-- [ ] extrair o frame de ~6,0s como `poster` da seção 3, em WebP
-- [ ] **se** decidir usar o droplet em movimento no lugar do `texture-enamel-loop`:
-      costurar um crossfade de ~0,6s para fechar o loop
-- [ ] gerar os posters em WebP (hoje são `.jpg`)
-
----
+Para trocar um vídeo: ponha o novo em `_origem/video-flow/` com o nome do
+slot, ajuste a receita no topo do script se o movimento pedir, e rode.
 
 ## Parte 5 — Piso de qualidade (vale em todos os passos)
 

@@ -312,21 +312,12 @@
   height: 0;
 }
 
-/* Correção de cor dos vídeos. Medição do quadro inteiro:
-     --osso ................. desvio quente (R−B) +9
-     hero-molar-loop ........ +35
-     water-droplet-sliding .. +25
-   Sem isso o bloco de vídeo lê como retângulo colado por cima da página.
-   O valor foi calibrado para o hero; conferir nos outros dois no passo 3. */
-@utility video-calibrado {
-  filter: saturate(0.82) hue-rotate(-6deg) brightness(1.04);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .video-calibrado {
-    filter: saturate(0.82) hue-rotate(-6deg) brightness(1.04);
-  }
-}
+/* A correção de cor dos vídeos SAIU DAQUI.
+   Ela era `filter: saturate() hue-rotate() brightness()` em todo vídeo e
+   custava cerca de 250 ms de renderização no perfil mobile do Lighthouse.
+   Agora é assada em cada arquivo por `scripts/preparar-videos.mjs`, o que
+   custa zero em tempo de execução e permite corrigir cada vídeo na direção
+   certa — a abertura precisava esquentar, a sala já estava no ponto. */
 
 /* ==========================================================================
    CTA — um único botão em toda a página: "Agendar avaliação".

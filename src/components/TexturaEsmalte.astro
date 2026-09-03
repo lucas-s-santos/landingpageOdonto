@@ -1,22 +1,25 @@
 ---
 // Faixa de transição entre as seções 4 e 5. Bloco CONTIDO, nunca full-bleed:
 // 720p não aguenta monitor grande (BRIEF seção 7).
-// O parallax de 0.15 é passo 4 — o atributo já fica marcado.
+//
+// O arquivo antigo (`texture-enamel`) mostrava creme sendo despejado e lia
+// como sorvete numa página de dentista — além de ser o maior arquivo do site,
+// 414 KB para um bloco decorativo. Foi substituído por um macro do esmalte
+// seco: matéria dura, que é o que a seção 3 explica em texto.
 ---
 
 <div class="textura" data-parallax="0.15" aria-hidden="true">
   <video
       data-video
-    class="video-calibrado"
-    poster="/video/texture-enamel-poster.jpg"
+    poster="/video/esmalte-poster.webp"
     muted
     loop
     playsinline
     preload="none"
     tabindex="-1"
   >
-    <source src="/video/texture-enamel-loop.webm" type="video/webm" />
-    <source src="/video/texture-enamel-loop.mp4" type="video/mp4" />
+    <source src="/video/esmalte.webm" type="video/webm" />
+    <source src="/video/esmalte.mp4" type="video/mp4" />
   </video>
 </div>
 
