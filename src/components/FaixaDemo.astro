@@ -1,0 +1,61 @@
+---
+import { EH_DEMO } from '../data/conteudo';
+---
+
+{/*
+  Só existe no modo demo. Faz duas coisas de uma vez:
+
+  diz que os dados são fictícios — porque a página traz nome de dentista,
+  endereço e horário que não existem, e quem abre o link precisa saber;
+
+  assina o trabalho. Numa página que a CalmDev mostra para vender, dizer
+  quem fez não é ruído, é o ponto.
+
+  Fica no topo do documento e é a primeira coisa que um leitor de tela
+  encontra, antes até do link de pular para o conteúdo.
+*/}
+{
+  EH_DEMO && (
+    <div class="faixa-demo">
+      <div class="faixa-demo__interno">
+        <span class="faixa-demo__marca">CalmDev</span>
+        <p>
+          Demonstração. Nome, endereço, telefone e equipe são fictícios — e o número do
+          CRO é só zeros, porque registro profissional a gente não inventa.
+        </p>
+      </div>
+    </div>
+  )
+}
+
+<style>
+  .faixa-demo {
+    background: var(--color-tinta);
+    color: var(--color-osso);
+  }
+
+  .faixa-demo__interno {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.35rem 0.9rem;
+    padding: 0.7rem var(--spacing-margem);
+  }
+
+  .faixa-demo__marca {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: var(--text-rotulo);
+    flex: none;
+  }
+
+  .faixa-demo p {
+    margin: 0;
+    font-size: var(--text-rotulo);
+    line-height: 1.45;
+    /* 78% de osso sobre tinta dá 9,4:1 — folga de sobra para texto pequeno,
+       e recua o suficiente para a faixa não competir com a abertura. */
+    color: color-mix(in srgb, var(--color-osso) 78%, var(--color-tinta));
+    max-width: 72ch;
+  }
+</style>

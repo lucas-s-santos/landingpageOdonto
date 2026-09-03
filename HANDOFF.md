@@ -1,6 +1,6 @@
 # HANDOFF — estado do projeto e como retomar
 
-Atualizado em 02/09/2026, depois da troca dos vídeos.
+Atualizado em 02/09/2026, com o modo demo.
 Leia este arquivo primeiro. Ele diz onde o projeto parou e o que fazer em seguida.
 
 ---
@@ -194,30 +194,64 @@ decidido só por descrição escrita, que é o canal mais fraco.
 
 ---
 
-## Parte 3 — O que falta para vender
+## Parte 3 — Modo demo e o que falta
 
-Os seis passos da ordem de trabalho estão feitos. O que resta não é código:
-é dado do cliente e material.
+### Como trocar entre demo e cliente
 
-### Bloqueia o deploy
+Uma linha, no topo de `src/data/conteudo.ts`:
 
-- [ ] **Preencher os 23 `[PREENCHER]`.** Estão todos em `src/data/conteudo.ts`
-      e no `astro.config.mjs` (o `site`). Nome da clínica, responsável
-      técnico, **número do CRO**, endereço, telefone, WhatsApp, horário e o
-      link do perfil no Google.
-- [ ] **Revisar a lista de tratamentos com o cliente.** A seção 3 do BRIEF
-      exige que especialidade só apareça se estiver registrada no CRO. Os sete
-      itens estão escritos como procedimento e área de atuação, que é o que a
-      clínica pode divulgar — mas a lista precisa bater com o que ela faz.
-- [ ] **Retratos da equipe.** Hoje são blocos `[PREENCHER retrato 4:5]`.
+```ts
+export const MODO: 'demo' | 'cliente' = 'demo';
+```
 
-### Melhora, não bloqueia
+`demo` — a página que a CalmDev mostra para vender. Dados fictícios da
+"Clínica Marena", em Varginha, e uma faixa preta no topo declarando que são
+fictícios e assinando o trabalho.
 
-- [ ] `refs/` continua vazia
-- [ ] peso morto em `public/` (ver Parte 4.1)
-- [ ] posters em `.jpg`; em WebP economizariam ~18 KB
+`cliente` — dados vazios, marcados `[PREENCHER]`, para ninguém publicar sem
+preencher. É o modo em que o projeto nasceu.
 
-### Resultado medido do passo 6
+### Duas coisas não são inventadas nem no demo
+
+Isto não é burocracia, e está no código com o motivo:
+
+**O número do CRO** fica como `CRO-MG 00.000`. Registro profissional é
+público: um número plausível pode ser o de um dentista real, e a página
+passaria a atribuir o registro dele a uma pessoa que não existe. Zero nunca é
+emitido. A faixa de demonstração explica isso na página, o que vira argumento
+de venda — mostra que quem fez o site cuida do lado legal.
+
+**O telefone** é `(35) 90000-0000`, que não é atribuível: celular brasileiro
+não começa com 90 depois do nove. Um número plausível tocaria na casa de
+alguém que nunca ouviu falar da clínica.
+
+**Os retratos da equipe** são monogramas, não fotos. Um rosto gerado
+apresentado como profissional com nome e registro é fabricar uma pessoa, e a
+faixa de demonstração não resolve isso. O monograma ocupa o mesmo espaço, lê
+como escolha de design e não finge ser ninguém.
+
+### O que falta para a demo ficar pronta
+
+- [ ] **O número de WhatsApp da CalmDev.** É o único `[PREENCHER]` que
+      sobrou, e é o que faz o CTA funcionar. Sem ele o botão vira um aviso.
+      Vai em `DEMO.whatsapp`, só dígitos com o 55 na frente:
+      `'5535999999999'`. No demo ele aponta de propósito para quem está
+      vendendo: o dono do consultório testa o botão e a mensagem cai com você.
+
+Depois disso, `npm run verificar` passa limpo e a demo pode ir para
+`clinicademo.calmdev.com.br`.
+
+### O que falta quando virar cliente de verdade
+
+- [ ] trocar `MODO` para `'cliente'` e preencher os `[PREENCHER]`
+- [ ] conferir a lista de tratamentos contra o que a clínica faz
+- [ ] **conferir cada especialidade contra o registro no CRO daquele
+      profissional** — "Clínica geral e endodontia" só pode ir ao ar se
+      estiver registrada. Seção 3 do BRIEF
+- [ ] retratos reais da equipe, 4:5
+- [ ] trocar `site` no `astro.config.mjs` pelo domínio real
+
+### Resultado medido
 
 ```
 Lighthouse, perfil mobile, sobre o build de produção:
@@ -225,25 +259,16 @@ Lighthouse, perfil mobile, sobre o build de produção:
   Accessibility  100
   Best Practices 100
   SEO            100
-
-  First Contentful Paint    1,5 s
-  Largest Contentful Paint  2,2 s
-  Total Blocking Time       120 ms
-  Cumulative Layout Shift   0
 ```
 
-Autocrítica contra a seção 9 do BRIEF, feita por varredura do HTML
-renderizado: os quinze padrões proibidos, limpos. Três alarmes se mostraram
-falsos positivos e estão registrados no commit — `serif` só aparece dentro de
-`sans-serif`, o único gradiente é a **máscara** do vídeo da abertura (máscara
-não é decoração), e `--font-mono` era um token padrão do Tailwind que nunca
-chegava a ser aplicado. O token foi removido para o alarme não se repetir.
+A varredura anti-clichê contra a seção 9 do BRIEF passa nos quinze padrões.
 
 ### Comandos
 
 ```bash
 npm run dev            # http://localhost:4321
 npm run verificar      # build + CFO-196 + a11y + movimento + 3D + Lighthouse + screenshots
+npm run video          # reprocessa os vídeos de _origem/video-flow/
 npm run conformidade   # só a varredura legal
 npm run a11y           # teclado, foco, títulos, JSON-LD
 npm run motion         # checagem final do MOTION.md
@@ -254,10 +279,9 @@ npx astro check        # tipos
 ```
 
 **Atenção:** os scripts de teste sobem servidor nas portas 4501–4504,
-**não** na 4321. Isso não é detalhe: enquanto usavam a 4321, um `astro dev`
-rodando em paralelo servia as capturas no lugar do `dist/`, com a barra de
-ferramentas do Astro no meio da página. Agora eles falham alto se a porta
-estiver ocupada, em vez de medir a página errada em silêncio.
+**não** na 4321. Enquanto usavam a 4321, um `astro dev` rodando em paralelo
+servia as capturas no lugar do `dist/`, com a barra de ferramentas do Astro
+no meio da página. Agora eles falham alto se a porta estiver ocupada.
 
 ---
 

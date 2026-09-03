@@ -1,10 +1,33 @@
 ---
-import { EQUIPE } from '../data/conteudo';
+import { EQUIPE, EH_DEMO } from '../data/conteudo';
+
+/** Duas iniciais: primeiro e último nome. */
+const iniciais = (nome: string) => {
+  const partes = nome.trim().split(/\s+/).filter((p) => p.length > 2);
+  if (!partes.length) return '';
+  const primeira = partes[0][0];
+  const ultima = partes.length > 1 ? partes[partes.length - 1][0] : '';
+  return (primeira + ultima).toUpperCase();
+};
 ---
 
-<!-- SEÇÃO 5 — vence "quem vai botar a mão na minha boca?"
-     Nome completo e CRO de cada profissional são OBRIGATÓRIOS pela
-     CFO-196/2019. O CRO vai como texto normal, nunca como selo ou badge. -->
+{/*
+  SEÇÃO 5 — vence "quem vai botar a mão na minha boca?"
+
+  Nome completo e CRO de cada profissional são OBRIGATÓRIOS pela
+  CFO-196/2019. O CRO vai como texto normal, nunca como selo ou badge.
+
+  O retrato:
+
+    no modo cliente, é um bloco marcado `[PREENCHER retrato 4:5]`, para
+    ninguém publicar sem a foto;
+
+    no modo demo, é um MONOGRAMA. Não é foto de banco de imagem e não é
+    rosto gerado: um rosto sintético apresentado como um profissional com
+    nome e registro é fabricar uma pessoa, e a faixa de demonstração não
+    resolve isso. O monograma lê como escolha de design, ocupa o mesmo
+    espaço e não finge ser ninguém.
+*/}
 <section class="grade mt-r-amplo" aria-labelledby="equipe-titulo">
   <div class="col-span-full">
     <h2 id="equipe-titulo" class="text-secao">Quem atende</h2>
@@ -14,15 +37,21 @@ import { EQUIPE } from '../data/conteudo';
     {
       EQUIPE.map((pessoa, i) => (
         <article class:list={['pessoa', i % 2 === 1 && 'pessoa--deslocada']}>
-          <div class="pessoa__retrato" role="img" aria-label={`Retrato de ${pessoa.nome}`}>
-            <span class="text-rotulo">[PREENCHER retrato 4:5]</span>
-          </div>
+          {EH_DEMO ? (
+            <div class="pessoa__retrato pessoa__monograma" aria-hidden="true">
+              <span class="font-display">{iniciais(pessoa.nome)}</span>
+            </div>
+          ) : (
+            <div class="pessoa__retrato" role="img" aria-label={`Retrato de ${pessoa.nome}`}>
+              <span class="text-rotulo">[PREENCHER retrato 4:5]</span>
+            </div>
+          )}
 
           <div class="pessoa__dados">
             <h3 class="text-tratamento font-texto font-medium">{pessoa.nome}</h3>
             <p class="text-rotulo mt-1 opacity-75">{pessoa.atuacao}</p>
             <p class="text-rodape mt-1">
-              CRO-MG <span data-numero>{pessoa.cro}</span>
+              <span data-numero>{pessoa.cro}</span>
             </p>
             <p class="max-w-prancha mt-4">{pessoa.sobre}</p>
           </div>
@@ -45,6 +74,18 @@ import { EQUIPE } from '../data/conteudo';
     display: grid;
     place-items: center;
     color: var(--color-tinta);
+  }
+
+  .pessoa__monograma span {
+    font-size: clamp(3rem, 7vw, 4.5rem);
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    /* Tinta sobre carvalho dá 6,9:1 cheia. A 0.55 caía para 2,78:1 e
+       reprovava até o piso de texto grande, que é 3:1 — apontado pelo
+       Lighthouse, não estimado. A 0.8 dá 4,8:1 e passa inclusive o piso de
+       texto pequeno, que é mais rigoroso do que este caso exige. */
+    opacity: 0.8;
   }
 
   @media (min-width: 700px) {

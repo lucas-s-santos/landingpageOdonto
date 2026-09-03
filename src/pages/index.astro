@@ -12,6 +12,7 @@ import PrimeiraConsulta from '../components/PrimeiraConsulta.astro';
 import Agendar from '../components/Agendar.astro';
 import Rodape from '../components/Rodape.astro';
 import BarraFixa from '../components/BarraFixa.astro';
+import FaixaDemo from '../components/FaixaDemo.astro';
 import { CLINICA } from '../data/conteudo';
 
 /**
@@ -30,6 +31,7 @@ import { CLINICA } from '../data/conteudo';
   titulo={`${CLINICA.nome} — dentista em ${CLINICA.cidade}`}
   descricao="Avaliação odontológica com explicação do que foi encontrado, por escrito. Atendimento em [PREENCHER cidade]."
 >
+  <FaixaDemo />
   <Cabecalho />
 
   <main id="conteudo">

@@ -52,8 +52,12 @@ const PROIBIDO = [
     re: /transforme seu sorriso|sorriso dos sonhos|cuidamos de voc[êe] como voc[êe] merece|excel[êe]ncia em odontologia/gi,
   },
   {
-    nome: 'número de CRO preenchido (só o cliente pode preencher)',
-    re: /CRO-[A-Z]{2}[\s:]*\d/gi,
+    // Zeros passam de propósito: é o que a página usa no modo demo, e zero
+    // nunca é emitido como registro. Qualquer outro dígito reprova — um
+    // número plausível pode ser o de um dentista real, e a página passaria a
+    // atribuir o registro dele a alguém que não existe.
+    nome: 'número de CRO com dígito diferente de zero (registro real de outra pessoa)',
+    re: /CRO-[A-Z]{2}[\s:]*[\d.]*[1-9][\d.]*/gi,
   },
 ];
 
@@ -86,10 +90,26 @@ for (const { nome, re } of OBRIGATORIO) {
   }
 }
 
-const pendentes = (visivel.match(/\[PREENCHER/g) ?? []).length;
-console.log(`\n${pendentes} marcador(es) [PREENCHER] — dado do cliente ainda não inventado.`);
-if (pendentes === 0) {
-  console.log('Nenhum [PREENCHER] restante: confirme que tudo foi preenchido com dado real.');
+const pendentes = visivel.match(/\[PREENCHER[^\]]*\]/g) ?? [];
+const ehDemo = /Demonstra[çc][ãa]o\./.test(visivel);
+
+console.log('');
+if (ehDemo) {
+  console.log('modo DEMO: a faixa que declara os dados como fictícios está na página.');
+  if (pendentes.length) {
+    // Numa demo, [PREENCHER] na tela quebra a venda: o dono do consultório
+    // vê um site inacabado em vez de vê-lo pronto com o nome dele.
+    falhou = true;
+    console.log(`  FALHA  ${pendentes.length} marcador(es) [PREENCHER] visível(is) na tela:`);
+    for (const p of [...new Set(pendentes)]) console.log(`         ${p}`);
+  } else {
+    console.log('  ok     nenhum [PREENCHER] visível');
+  }
+} else {
+  console.log(`${pendentes.length} marcador(es) [PREENCHER] — dado do cliente ainda não inventado.`);
+  if (pendentes.length === 0) {
+    console.log('Nenhum [PREENCHER] restante: confirme que tudo foi preenchido com dado real.');
+  }
 }
 
 console.log(falhou ? '\nREPROVADO' : '\nAPROVADO');

@@ -16,7 +16,51 @@
  *    frases curtas, duração honesta.
  */
 
-export const CLINICA = {
+/**
+ * MODO DE OPERAÇÃO
+ *
+ * `demo`    — a página que a CalmDev mostra para vender. Dados fictícios,
+ *             com uma faixa no topo dizendo que são.
+ * `cliente` — a página de um cliente real. Dados vazios, marcados
+ *             `[PREENCHER]`, para ninguém publicar sem preencher.
+ *
+ * Trocar aqui troca a página inteira.
+ */
+export const MODO: 'demo' | 'cliente' = 'demo';
+
+export const EH_DEMO = MODO === 'demo';
+
+/**
+ * DUAS COISAS NÃO SÃO INVENTADAS NEM NO MODO DEMO, e não é burocracia:
+ *
+ * 1. O NÚMERO DO CRO. É registro público. Um número plausível pode ser o de
+ *    um dentista real, e a página passaria a atribuir o registro dele a uma
+ *    pessoa que não existe. Zeros nunca são emitidos: preenchem o espaço no
+ *    layout e não colidem com ninguém.
+ *
+ * 2. O TELEFONE. `(35) 90000-0000` não é atribuível — celular brasileiro não
+ *    começa com 90 depois do nove. Um número plausível tocaria na casa de
+ *    alguém que nunca ouviu falar desta clínica.
+ *
+ * O WhatsApp é a exceção proposital: no demo ele aponta para um número que a
+ * CalmDev controla, para o dono do consultório poder testar o botão e a
+ * mensagem cair com quem está vendendo.
+ */
+const DEMO = {
+  nome: 'Clínica Marena',
+  responsavelTecnico: 'Helena Marena Ribeiro',
+  croResponsavel: 'CRO-MG 00.000',
+  endereco: 'Rua das Acácias, 240 — Centro',
+  cidade: 'Varginha',
+  uf: 'MG',
+  cep: '37002-000',
+  telefone: '(35) 90000-0000',
+  whatsapp: '[PREENCHER o WhatsApp da CalmDev]',
+  horario: 'Segunda a sexta, das 8h às 19h. Sábado, das 8h às 12h.',
+  perfilGoogle: 'https://www.google.com/maps',
+} as const;
+
+const CLIENTE = {
   nome: '[PREENCHER nome da clínica]',
   responsavelTecnico: '[PREENCHER nome completo do responsável técnico]',
   croResponsavel: '[PREENCHER número do CRO]',
@@ -26,15 +70,17 @@ export const CLINICA = {
   cep: '[PREENCHER CEP]',
   telefone: '[PREENCHER telefone]',
   /**
-   * Só dígitos, com código do país. Ex.: 5531999999999
-   * Enquanto não for preenchido, o botão do WhatsApp fica desabilitado —
-   * ver `linkWhatsApp()` mais abaixo.
+   * Só dígitos, com código do país. Ex.: 5535999999999
+   * Enquanto não for preenchido, o botão do WhatsApp mostra o telefone em
+   * vez de um link quebrado — ver `linkWhatsApp()` no fim do arquivo.
    */
   whatsapp: '[PREENCHER]',
   horario: '[PREENCHER horário de atendimento]',
   /** URL do perfil no Google. As avaliações ficam lá, nunca republicadas aqui. */
   perfilGoogle: '[PREENCHER link do perfil no Google]',
 } as const;
+
+export const CLINICA = EH_DEMO ? DEMO : CLIENTE;
 
 export const ABERTURA = {
   /**
@@ -179,7 +225,24 @@ export const TRATAMENTOS = [
   },
 ] as const;
 
-export const EQUIPE = [
+const EQUIPE_DEMO = [
+  {
+    nome: 'Helena Marena Ribeiro',
+    cro: 'CRO-MG 00.000',
+    atuacao: 'Clínica geral e endodontia',
+    sobre:
+      'Atende há dezoito anos e gosta de explicar com a radiografia na tela. Costuma dizer que ninguém decide bem sobre o que não entende.',
+  },
+  {
+    nome: 'Rafael Queiroz Amaral',
+    cro: 'CRO-MG 00.000',
+    atuacao: 'Clínica geral e prótese',
+    sobre:
+      'Cuida da parte de reabilitação. Prefere planejar em etapas e revisar entre uma e outra a fazer tudo de uma vez.',
+  },
+] as const;
+
+const EQUIPE_CLIENTE = [
   {
     nome: '[PREENCHER nome completo]',
     cro: '[PREENCHER número do CRO]',
@@ -193,6 +256,13 @@ export const EQUIPE = [
     sobre: '[PREENCHER duas linhas sobre como essa pessoa atende]',
   },
 ] as const;
+
+/**
+ * ATENÇÃO no modo cliente: "Clínica geral e endodontia" só pode ir ao ar se
+ * a especialidade estiver registrada no CRO daquele profissional. É o que a
+ * seção 3 do BRIEF exige, e vale conferir item por item.
+ */
+export const EQUIPE = EH_DEMO ? EQUIPE_DEMO : EQUIPE_CLIENTE;
 
 export const ESTRUTURA = {
   titulo: 'Onde você vai sentar',
@@ -246,6 +316,15 @@ export const ORIGEM = 'site';
  */
 export function linkWhatsApp(mensagem: string): string | null {
   const numero = CLINICA.whatsapp.replace(/\D/g, '');
-  if (!numero) return null;
+
+  // Doze dígitos é o mínimo de um celular brasileiro com código do país:
+  // 55 + DDD de 2 + 8 ou 9 do assinante.
+  //
+  // Antes esta checagem era só `if (!numero)`, e um placeholder que
+  // continha a palavra "55" no meio do texto virava `wa.me/55` — um link
+  // que abre o WhatsApp e não leva a lugar nenhum. Pior que um botão
+  // desabilitado, porque parece que funciona.
+  if (numero.length < 12) return null;
+
   return `https://wa.me/${numero}?text=${encodeURIComponent(mensagem)}`;
 }
