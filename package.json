@@ -20,7 +20,8 @@
     "motion": "astro build && node scripts/movimento-check.mjs",
     "dente": "astro build && node scripts/dente-check.mjs",
     "lighthouse": "astro build && node scripts/lighthouse.mjs",
-    "video": "node scripts/preparar-videos.mjs"
+    "video": "node scripts/preparar-videos.mjs",
+    "recortar": "node scripts/recortar.mjs"
   },
   "dependencies": {
     "astro": "^7.2.10",
