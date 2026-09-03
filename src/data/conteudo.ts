@@ -38,13 +38,10 @@ export const EH_DEMO = MODO === 'demo';
  *    pessoa que não existe. Zeros nunca são emitidos: preenchem o espaço no
  *    layout e não colidem com ninguém.
  *
- * 2. O TELEFONE. `(35) 90000-0000` não é atribuível — celular brasileiro não
- *    começa com 90 depois do nove. Um número plausível tocaria na casa de
- *    alguém que nunca ouviu falar desta clínica.
- *
- * O WhatsApp é a exceção proposital: no demo ele aponta para um número que a
- * CalmDev controla, para o dono do consultório poder testar o botão e a
- * mensagem cair com quem está vendendo.
+ * 2. O TELEFONE DE UM TERCEIRO. Um número plausível inventado tocaria na
+ *    casa de alguém que nunca ouviu falar desta clínica. Por isso o telefone
+ *    do demo é o da própria CalmDev, real e com dono conhecido — nunca um
+ *    número tirado do nada.
  */
 const DEMO = {
   nome: 'Clínica Marena',
@@ -54,8 +51,16 @@ const DEMO = {
   cidade: 'Varginha',
   uf: 'MG',
   cep: '37002-000',
-  telefone: '(35) 90000-0000',
-  whatsapp: '[PREENCHER o WhatsApp da CalmDev]',
+  // Telefone e WhatsApp são o MESMO número, e é um número real: o da
+  // CalmDev. Numa demo isso é proposital — o dono do consultório clica em
+  // "Agendar avaliação", o WhatsApp abre com a mensagem pronta e ela cai com
+  // quem está vendendo. Ele testa o fluxo inteiro e vira lead na mesma ação.
+  //
+  // Mostrar um telefone falso ao lado de um WhatsApp que funciona deixaria a
+  // demo incoerente: quem ligasse não seria atendido. Para separar os dois,
+  // basta trocar `telefone` aqui de volta por um não atribuível.
+  telefone: '(35) 98886-2172',
+  whatsapp: '5535988862172',
   horario: 'Segunda a sexta, das 8h às 19h. Sábado, das 8h às 12h.',
   perfilGoogle: 'https://www.google.com/maps',
 } as const;

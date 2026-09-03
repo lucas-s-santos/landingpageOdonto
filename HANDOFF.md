@@ -230,16 +230,22 @@ apresentado como profissional com nome e registro é fabricar uma pessoa, e a
 faixa de demonstração não resolve isso. O monograma ocupa o mesmo espaço, lê
 como escolha de design e não finge ser ninguém.
 
-### O que falta para a demo ficar pronta
+### A demo está pronta
 
-- [ ] **O número de WhatsApp da CalmDev.** É o único `[PREENCHER]` que
-      sobrou, e é o que faz o CTA funcionar. Sem ele o botão vira um aviso.
-      Vai em `DEMO.whatsapp`, só dígitos com o 55 na frente:
-      `'5535999999999'`. No demo ele aponta de propósito para quem está
-      vendendo: o dono do consultório testa o botão e a mensagem cai com você.
+Nenhum `[PREENCHER]` visível na tela, e `npm run verificar` passa limpo.
 
-Depois disso, `npm run verificar` passa limpo e a demo pode ir para
-`clinicademo.calmdev.com.br`.
+O CTA leva para `wa.me/5535988862172`, o número da CalmDev, com a mensagem
+montada a partir dos três campos:
+
+> Olá! Vim pelo site e queria agendar uma avaliação. Meu nome é Ana Paula.
+> Motivo: Estou com dor. Melhor horário para retornar: à noite.
+
+Telefone e WhatsApp são o mesmo número de propósito: um telefone falso ao
+lado de um WhatsApp que funciona deixaria a demo incoerente — quem ligasse
+não seria atendido. Para separar, é só trocar `DEMO.telefone` por um número
+não atribuível.
+
+Pode ir para `clinicademo.calmdev.com.br`.
 
 ### O que falta quando virar cliente de verdade
 
