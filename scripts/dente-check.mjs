@@ -143,6 +143,51 @@ if (pronto) {
   diz(await pg.evaluate(() => document.querySelector('[data-hotspot="colo"]')?.getAttribute('aria-pressed')) === 'true',
     'o hotspot também responde ao teclado');
 
+  // --- os fios nunca podem passar por cima do texto ---------------
+  //
+  // Eles saem de pontos que se movem com a rotação e chegam a rótulos
+  // parados. Numa janela estreita o corredor entre a prancha e a coluna de
+  // texto some, e o fio passava por cima das letras — medido em 920px, o fio
+  // chegava a x=543 com o texto começando em 539.
+  const medirFios = () =>
+    pg.evaluate(() => {
+      const svg = document.querySelector('[data-fios]');
+      const rSvg = svg.getBoundingClientRect();
+      const textos = [...document.querySelectorAll('.prancha__item dd, .prancha__item dt')].map((e) => {
+        const b = e.getBoundingClientRect();
+        return { x1: b.left, y1: b.top, x2: b.right, y2: b.bottom };
+      });
+      let cruzam = 0;
+      let visiveis = 0;
+      for (const p of svg.querySelectorAll('path')) {
+        // Fio escondido não cruza nada, e sem `d` não tem geometria.
+        if (+getComputedStyle(p).opacity === 0 || !p.getAttribute('d')) continue;
+        visiveis++;
+        const L = p.getTotalLength();
+        for (let i = 0; i <= 80; i++) {
+          const pt = p.getPointAtLength((L * i) / 80);
+          const x = rSvg.left + pt.x;
+          const y = rSvg.top + pt.y;
+          if (textos.some((t) => x > t.x1 + 2 && x < t.x2 - 2 && y > t.y1 + 2 && y < t.y2 - 2)) cruzam++;
+        }
+      }
+      return { cruzam, visiveis };
+    });
+
+  const largo = await medirFios();
+  diz(largo.cruzam === 0, `em 1440px nenhum fio passa por cima do texto (${largo.visiveis} fios visíveis)`);
+
+  await pg.setViewportSize({ width: 960, height: 900 });
+  await pg.evaluate(() => document.querySelector('#anatomia').scrollIntoView({ block: 'center' }));
+  await pg.waitForTimeout(1200);
+  const estreito = await medirFios();
+  diz(
+    estreito.cruzam === 0,
+    `em 960px também não (${estreito.visiveis} fios visíveis — sem corredor, o fio some)`
+  );
+  await pg.setViewportSize({ width: 1440, height: 900 });
+  await pg.waitForTimeout(600);
+
   // o cursor customizado segue o mouse e ficaria congelado na captura
   await pg.evaluate(() => document.querySelector('.cursor')?.remove());
   await pg.screenshot({ path: 'screenshots/_dente.png', clip: await pg.locator('[data-palco]').boundingBox() });

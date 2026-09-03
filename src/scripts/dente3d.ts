@@ -434,13 +434,40 @@ export async function montarDente(opcoes: { desktop: boolean }): Promise<Cena | 
 
       const x1 = rPalco.left - rSvg.left + px;
       const y1 = rPalco.top - rSvg.top + py;
-      const x2 = rItem.left - rSvg.left;
       const y2 = rItem.top - rSvg.top + rItem.height / 2;
-      // cotovelo logo depois da borda direita do palco, como em prancha
-      // de livro de anatomia
-      const xc = rPalco.right - rSvg.left + 24;
 
-      fio.setAttribute('d', `M ${x1} ${y1} L ${xc} ${y1} L ${x2} ${y2}`);
+      // Onde o texto começa, e quanto espaço sobra entre a prancha e ele.
+      const bordaTexto = rItem.left - rSvg.left;
+      const bordaPalco = rPalco.right - rSvg.left;
+      const folga = bordaTexto - bordaPalco;
+
+      // Sem espaço, sem fio.
+      //
+      // Entre 900 e ~1000px de janela a coluna de texto encosta na prancha:
+      // medido em 920px, o fio chegava a x=543 e o texto começava em 539, ou
+      // seja, passava POR CIMA das letras. Fio de prancha anatômica precisa
+      // de corredor; sem corredor ele vira rabisco sobre o texto. Os pontos
+      // e os rótulos continuam funcionando sem ele.
+      if (folga < 72) {
+        fio.style.opacity = '0';
+        // Limpa o traçado junto. Só baixar a opacidade deixaria a geometria
+        // antiga guardada no elemento, o que confunde qualquer inspeção e
+        // volta a aparecer se a opacidade mudar por outro caminho.
+        fio.removeAttribute('d');
+        continue;
+      }
+
+      // Traçado em três trechos, como em prancha de livro: sai do ponto na
+      // horizontal, atravessa o corredor na diagonal e chega ao rótulo de
+      // novo na horizontal. O trecho reto na chegada é o que faz a ligação
+      // parecer deliberada em vez de uma diagonal solta cruzando a página.
+      const saida = bordaPalco + Math.min(28, folga * 0.22);
+      const chegada = bordaTexto - Math.min(28, folga * 0.22);
+
+      fio.setAttribute(
+        'd',
+        `M ${x1} ${y1} L ${saida} ${y1} L ${chegada} ${y2} L ${bordaTexto - 8} ${y2}`
+      );
       fio.style.opacity = foraDoQuadro ? '0' : atras ? '0.3' : '';
     }
   };

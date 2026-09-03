@@ -1,5 +1,5 @@
 ---
-import { CLINICA } from '../data/conteudo';
+import { CLINICA, EH_DEMO } from '../data/conteudo';
 ---
 
 <!-- SEÇÃO 9 — localização, CRO, horário.
@@ -45,6 +45,26 @@ import { CLINICA } from '../data/conteudo';
     <p class="col-span-full text-rotulo rodape__aviso">
       Este site tem finalidade informativa e não substitui consulta odontológica.
     </p>
+
+    {/*
+      A declaração de demonstração vivia numa faixa preta no topo. Saiu de lá
+      porque um aviso em cima da abertura contradiz o que a página existe para
+      fazer: mostrar o resultado pronto para quem vai comprar.
+
+      Mas não some de vez. Sem nenhuma declaração, o `CRO-MG 00.000` parece
+      defeito em vez de cuidado, e o telefone do rodapé é real — se o link
+      circular fora de uma conversa, alguém pode mandar mensagem achando que
+      fala com um dentista. Uma linha no fim resolve os dois sem atrapalhar
+      a leitura.
+    */}
+    {
+      EH_DEMO && (
+        <p class="col-span-full text-rotulo rodape__aviso mt-2">
+          Demonstração da CalmDev. Nome, endereço e equipe são fictícios, e o número do CRO
+          fica zerado de propósito: registro profissional não se inventa.
+        </p>
+      )
+    }
   </div>
 </footer>
 

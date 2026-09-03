@@ -91,11 +91,22 @@ for (const { nome, re } of OBRIGATORIO) {
 }
 
 const pendentes = visivel.match(/\[PREENCHER[^\]]*\]/g) ?? [];
-const ehDemo = /Demonstra[çc][ãa]o\./.test(visivel);
+// Detecta pelo `noindex`, que vem direto de EH_DEMO. Antes era pelo texto
+// da faixa de demonstração — e a faixa saiu do topo, o que quebraria a
+// checagem em silêncio.
+const ehDemo = /<meta[^>]+name=["']robots["'][^>]*noindex/i.test(html);
 
 console.log('');
 if (ehDemo) {
-  console.log('modo DEMO: a faixa que declara os dados como fictícios está na página.');
+  console.log('modo DEMO: a página traz noindex.');
+  if (!/Demonstra[çc][ãa]o da CalmDev/.test(visivel)) {
+    falhou = true;
+    console.log('  FALHA  nenhuma declaração de demonstração no texto visível.');
+    console.log('         A página usa nome, endereço e equipe fictícios num');
+    console.log('         endereço real. Algo precisa dizer isso a quem abre o link.');
+  } else {
+    console.log('  ok     a declaração de demonstração está no rodapé');
+  }
   if (pendentes.length) {
     // Numa demo, [PREENCHER] na tela quebra a venda: o dono do consultório
     // vê um site inacabado em vez de vê-lo pronto com o nome dele.
