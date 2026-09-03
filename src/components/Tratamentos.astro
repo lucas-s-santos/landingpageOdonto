@@ -58,7 +58,10 @@ import { TRATAMENTOS } from '../data/conteudo';
     list-style: none;
     /* alvo de toque confortável no mobile */
     min-height: 56px;
-    transition: padding-left 0.001ms; /* o deslocamento de 12px é passo 4 */
+    /* A transição do hover mora em tokens.css. Havia aqui um
+       `transition: padding-left 0.001ms` deixado como marcador no passo 3;
+       como estilo de componente vence a camada base, ele ANULAVA o deslize
+       de 12px e o hover saltava. Encontrado pelo detector da impeccable. */
   }
 
   .item__cabeca::-webkit-details-marker {
