@@ -205,8 +205,13 @@ export const MODO: 'demo' | 'cliente' = 'demo';
 ```
 
 `demo` — a página que a CalmDev mostra para vender. Dados fictícios da
-"Clínica Marena", em Varginha, e uma faixa preta no topo declarando que são
+"Clínica Sobrado", em Alfenas, e uma linha no rodapé declarando que são
 fictícios e assinando o trabalho.
+
+A declaração já esteve numa faixa preta no topo e saiu de lá: um aviso em cima
+da abertura contradiz o que a página existe para fazer, que é mostrar o
+resultado pronto a quem vai comprar. No rodapé ela cumpre o papel sem
+atrapalhar a leitura.
 
 `cliente` — dados vazios, marcados `[PREENCHER]`, para ninguém publicar sem
 preencher. É o modo em que o projeto nasceu.
@@ -235,17 +240,23 @@ Isto não é burocracia, e está no código com o motivo:
 **O número do CRO** fica como `CRO-MG 00.000`. Registro profissional é
 público: um número plausível pode ser o de um dentista real, e a página
 passaria a atribuir o registro dele a uma pessoa que não existe. Zero nunca é
-emitido. A faixa de demonstração explica isso na página, o que vira argumento
-de venda — mostra que quem fez o site cuida do lado legal.
+emitido. A linha do rodapé explica isso, o que vira argumento de venda —
+mostra que quem fez o site cuida do lado legal.
 
-**O telefone** é `(35) 90000-0000`, que não é atribuível: celular brasileiro
-não começa com 90 depois do nove. Um número plausível tocaria na casa de
-alguém que nunca ouviu falar da clínica.
+**O telefone não é inventado, é o da CalmDev:** `(35) 98886-2172`, o mesmo do
+WhatsApp. Um número plausível tirado do nada tocaria na casa de alguém que
+nunca ouviu falar da clínica; um número falso ao lado de um WhatsApp que
+funciona deixaria a demo incoerente. Sendo o mesmo e sendo real, quem testar
+o botão cai com quem está vendendo.
 
 **Os retratos da equipe** são monogramas, não fotos. Um rosto gerado
-apresentado como profissional com nome e registro é fabricar uma pessoa, e a
-faixa de demonstração não resolve isso. O monograma ocupa o mesmo espaço, lê
-como escolha de design e não finge ser ninguém.
+apresentado como profissional com nome e registro é fabricar uma pessoa, e
+nenhuma declaração resolve isso. O monograma ocupa o mesmo espaço, lê como
+escolha de design e não finge ser ninguém.
+
+A opacidade dele é `0.8`, não menos: tinta sobre carvalho dá 6,9:1 cheia, mas
+a 0.55 caía para 2,78:1 e reprovava até o piso de texto grande, que é 3:1.
+Apontado pelo Lighthouse, não estimado.
 
 ### A demo está pronta
 
