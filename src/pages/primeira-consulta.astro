@@ -1,0 +1,245 @@
+---
+import Base from '../layouts/Base.astro';
+import Cabecalho from '../components/Cabecalho.astro';
+import Rodape from '../components/Rodape.astro';
+import { CLINICA, PERGUNTAS, PREPARO, PRIMEIRA_CONSULTA, linkWhatsApp } from '../data/conteudo';
+
+/**
+ * PÁGINA DE PREPARO — /primeira-consulta
+ *
+ * Não é uma seção da landing, e não está no fluxo dela. É uma rota própria,
+ * feita para a recepção colar no WhatsApp quando confirma o horário, e para
+ * a pessoa reler na véspera.
+ *
+ * Ataca as duas dores mais caras do BRIEF (seção 2): a falta em cima da
+ * hora, que abre buraco na agenda sem aviso, e o paciente que vem na
+ * avaliação e some. Quem chega sabendo o que vai acontecer chega menos
+ * cético — e quem sabe que pode avisar, avisa.
+ *
+ * CFO-196: tudo aqui é conteúdo educativo e informação de estrutura, que a
+ * resolução permite expressamente. Nenhuma linha fala de preço, forma de
+ * pagamento, resultado esperado ou promessa de qualquer natureza.
+ *
+ * REGRA DO CTA ÚNICO (BRIEF seção 4): esta página NÃO repete "Agendar
+ * avaliação". Quem chega aqui já tem horário marcado — foi a clínica que
+ * mandou o link. O único caminho de ação é avisar se não puder vir, e ele é
+ * um link de texto, não um botão, justamente para não virar um segundo CTA
+ * competindo com o da landing.
+ */
+
+const total = PRIMEIRA_CONSULTA.etapas.reduce((s, e) => s + e.minutos, 0);
+
+const remarcar = linkWhatsApp(
+  'Olá! Tenho uma consulta marcada e preciso remarcar.'
+);
+
+const blocos = [PREPARO.levar, PREPARO.antes, PREPARO.naoPrecisa];
+---
+
+<Base
+  titulo={`Antes da sua primeira consulta — ${CLINICA.nome}`}
+  descricao="O que trazer, o que fazer no dia e o que acontece na primeira consulta. Página de preparo para quem já tem horário marcado."
+  faq
+>
+  <Cabecalho destinoCta="/#agendar" />
+
+  <main id="conteudo" class="preparo">
+    <div class="grade">
+      <div class="col-span-full md:col-span-7 md:col-start-2">
+        <h1 class="text-secao">{PREPARO.titulo}</h1>
+        <p class="max-w-corpo mt-6">{PREPARO.intro}</p>
+      </div>
+    </div>
+
+    {/*
+      Três listas do mesmo peso, sem cartão e sem ícone: a página é uma
+      folha de instruções, e folha de instruções não tem caixinha colorida
+      (BRIEF seção 9, itens 4 e 14).
+    */}
+    <div class="grade mt-16">
+      {
+        blocos.map((bloco) => (
+          <section class="bloco col-span-full md:col-span-7 md:col-start-2">
+            <h2 class="text-rotulo font-medium">{bloco.titulo}</h2>
+            <ul class="lista mt-4">
+              {bloco.itens.map((item) => (
+                <li class="max-w-corpo">{item}</li>
+              ))}
+            </ul>
+          </section>
+        ))
+      }
+    </div>
+
+    {/*
+      O bloco que mais devolve horário para a agenda. Pede o aviso sem
+      cobrar e sem ameaçar: quem sente que vai levar bronca não avisa,
+      simplesmente não aparece.
+    */}
+    <div class="grade mt-16">
+      <section class="avisar col-span-full md:col-span-7 md:col-start-2">
+        <h2 class="text-rotulo font-medium">{PREPARO.avisar.titulo}</h2>
+        <p class="max-w-corpo mt-4">{PREPARO.avisar.texto}</p>
+        {
+          remarcar ? (
+            <p class="mt-4">
+              <a class="ligacao" href={remarcar} target="_blank" rel="noopener noreferrer">
+                Avisar pelo WhatsApp
+              </a>
+            </p>
+          ) : (
+            <p class="text-rotulo mt-4">
+              [PREENCHER número de WhatsApp] — por enquanto, o telefone é {CLINICA.telefone}.
+            </p>
+          )
+        }
+      </section>
+    </div>
+
+    {/* A mesma sequência da seção 7 da landing, para quem cai aqui direto. */}
+    <div class="grade mt-20">
+      <section class="col-span-full md:col-span-8 md:col-start-2">
+        <h2 class="text-secao">{PRIMEIRA_CONSULTA.titulo}</h2>
+        <p class="max-w-corpo mt-6">{PRIMEIRA_CONSULTA.intro}</p>
+
+        <ol class="etapas mt-10">
+          {
+            PRIMEIRA_CONSULTA.etapas.map((etapa, i) => (
+              <li class="etapa">
+                <span class="etapa__numero text-rotulo" aria-hidden="true">
+                  {i + 1}
+                </span>
+                <span class="etapa__texto">{etapa.texto}</span>
+                <time class="etapa__tempo text-rotulo" datetime={`PT${etapa.minutos}M`}>
+                  cerca de {etapa.minutos} min
+                </time>
+              </li>
+            ))
+          }
+        </ol>
+
+        <p class="text-rotulo mt-6 opacity-75">
+          Somando, <time datetime={`PT${total}M`}>cerca de {total} minutos</time>.
+        </p>
+      </section>
+    </div>
+
+    {/*
+      As perguntas ficam VISÍVEIS aqui, e é por isso que é esta página que
+      carrega o FAQPage no JSON-LD. Marcar pergunta que a pessoa não
+      consegue ler na tela é o erro clássico de marcação de FAQ.
+    */}
+    <div class="grade mt-20">
+      <section class="col-span-full md:col-span-7 md:col-start-2">
+        <h2 class="text-secao">O que mais perguntam</h2>
+        <dl class="perguntas mt-10">
+          {
+            PERGUNTAS.map((p) => (
+              <div class="pergunta">
+                <dt class="font-medium">{p.pergunta}</dt>
+                <dd class="max-w-corpo mt-2">{p.resposta}</dd>
+              </div>
+            ))
+          }
+        </dl>
+      </section>
+    </div>
+
+    {/*
+      Endereço e horário NÃO se repetem aqui: o rodapé vem logo abaixo e já
+      traz os dois. Repetir a dez centímetros de distância não ajuda ninguém
+      a achar a clínica, só faz a página parecer montada por pedaços.
+    */}
+    <div class="grade mt-20">
+      <p class="text-rodape col-span-full md:col-span-7 md:col-start-2">
+        <a class="ligacao" href="/">Voltar para a página da clínica</a>
+      </p>
+    </div>
+  </main>
+
+  <Rodape />
+</Base>
+
+<style>
+  .preparo {
+    padding-block: var(--spacing-r-curto) var(--spacing-r-respiro);
+  }
+
+  .bloco + .bloco {
+    margin-top: 3rem;
+  }
+
+  /* É o bloco que mais devolve horário para a agenda, então não pode ler
+     como rodapé de página. O fio em tinta cheia (os outros são --linha) dá
+     a ele o único destaque da página, sem virar cartão e sem virar um
+     segundo botão competindo com o CTA da landing. */
+  .avisar {
+    border-top: 1px solid var(--color-tinta);
+    padding-top: 1.5rem;
+  }
+
+  .lista {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  /* Fio de 1px entre itens, o mesmo recurso da lista de etapas e da prancha.
+     Separação por linha e por espaço, nunca por sombra (BRIEF seção 5). */
+  .lista li {
+    padding-block: 0.9rem;
+    border-top: 1px solid var(--color-linha);
+  }
+
+  .lista li:last-child {
+    border-bottom: 1px solid var(--color-linha);
+  }
+
+  .etapas {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .etapa {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    padding-block: 1.1rem;
+    border-top: 1px solid var(--color-linha);
+  }
+
+  .etapa:last-child {
+    border-bottom: 1px solid var(--color-linha);
+  }
+
+  .etapa__numero {
+    flex: none;
+    width: 1.5rem;
+    opacity: 0.55;
+  }
+
+  .etapa__texto {
+    flex: 1;
+  }
+
+  .etapa__tempo {
+    flex: none;
+    opacity: 0.75;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+
+  .pergunta + .pergunta {
+    margin-top: 2rem;
+  }
+
+  .ligacao {
+    text-decoration-color: color-mix(in srgb, var(--color-tinta) 40%, transparent);
+    text-underline-offset: 4px;
+  }
+
+  .ligacao:hover {
+    text-decoration-color: currentColor;
+  }
+</style>

@@ -1,5 +1,5 @@
 ---
-import { CLINICA, EH_DEMO } from '../data/conteudo';
+import { CLINICA, EH_DEMO, HORARIO_TEXTO } from '../data/conteudo';
 ---
 
 <!-- SEÇÃO 9 — localização, CRO, horário.
@@ -32,7 +32,7 @@ import { CLINICA, EH_DEMO } from '../data/conteudo';
 
     <div class="col-span-full mt-8 md:col-span-3 md:col-start-10 md:mt-0">
       <h2 class="text-rotulo font-medium">Horário</h2>
-      <p class="text-rodape mt-3">{CLINICA.horario}</p>
+      <p class="text-rodape mt-3">{HORARIO_TEXTO}</p>
       <p class="text-rodape mt-6">
         <a href={CLINICA.perfilGoogle} target="_blank" rel="noopener noreferrer">
           Ver avaliações no Google

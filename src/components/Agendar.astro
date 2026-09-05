@@ -1,5 +1,14 @@
 ---
-import { AGENDAR, CLINICA, CTA, ORIGEM, linkWhatsApp } from '../data/conteudo';
+import {
+  AGENDAR,
+  CANAIS,
+  CANAL_PADRAO,
+  CLINICA,
+  CTA,
+  EXPEDIENTE,
+  FUSO,
+  linkWhatsApp,
+} from '../data/conteudo';
 
 /**
  * Link base, montado no servidor. Já funciona sem uma linha de JavaScript:
@@ -9,7 +18,13 @@ import { AGENDAR, CLINICA, CTA, ORIGEM, linkWhatsApp } from '../data/conteudo';
  * Retorna null enquanto CLINICA.whatsapp for [PREENCHER] — nesse caso a
  * interface mostra o telefone em vez de um botão que não leva a lugar nenhum.
  */
-const mensagemBase = `Olá! Vim pelo ${ORIGEM} e queria agendar uma avaliação.`;
+/**
+ * A mensagem que sai sem uma linha de JavaScript. O canal real entra no
+ * cliente, porque a página é estática: um HTML só é servido para todo mundo,
+ * e quem chegou pelo Instagram recebe o mesmo arquivo de quem chegou pela
+ * busca. Só o navegador sabe qual link foi clicado.
+ */
+const mensagemBase = `Olá! Vim ${CANAIS[CANAL_PADRAO]} e queria agendar uma avaliação.`;
 const href = linkWhatsApp(mensagemBase);
 ---
 
@@ -72,6 +87,7 @@ const href = linkWhatsApp(mensagemBase);
                 data-ima
                 data-link-whatsapp
                 data-base={mensagemBase}
+                data-canais={JSON.stringify(CANAIS)}
               >
                 {CTA}
               </a>
@@ -83,6 +99,25 @@ const href = linkWhatsApp(mensagemBase);
             </p>
           )
         }
+
+        {/*
+          Estado do expediente. Nasce VAZIO e escondido: a página é estática,
+          então o HTML servido às 10h da manhã é o mesmo das 23h — dizer
+          qualquer coisa aqui no servidor seria mentira metade do tempo. O
+          script preenche. Sem JavaScript a linha simplesmente não existe, em
+          vez de mostrar informação errada.
+
+          aria-live porque o texto aparece depois da leitura inicial: sem
+          isso, quem usa leitor de tela nunca fica sabendo que ele chegou.
+        */}
+        <p
+          class="expediente text-rotulo mt-5"
+          data-expediente={JSON.stringify(EXPEDIENTE)}
+          data-fuso={FUSO}
+          aria-live="polite"
+          hidden
+        >
+        </p>
 
         <p class="text-rotulo mt-4 opacity-75">
           O botão abre o WhatsApp com a mensagem já escrita. Você lê antes de enviar.
@@ -105,9 +140,36 @@ const href = linkWhatsApp(mensagemBase);
   const raiz = document.querySelector<HTMLElement>('[data-agendar]');
   const link = raiz?.querySelector<HTMLAnchorElement>('[data-link-whatsapp]');
 
+  /* ------------------------------------------------------------------
+     DE ONDE A PESSOA VEIO
+
+     O link da bio do Instagram vira /?de=ig, o QR do balcão vira
+     /?de=cartao, e a mensagem chega no WhatsApp dizendo isso. É como a
+     clínica descobre qual canal traz paciente — dado que ela não tem hoje,
+     e que é a base do relatório que a CalmDev entrega depois.
+
+     A URL só ESCOLHE UMA CHAVE de uma lista fechada; o texto sai do
+     conteudo.ts. Sem a lista, qualquer um monta um link com ?de=<texto
+     qualquer> e manda para a vítima, e a clínica leria esse texto como se
+     a pessoa o tivesse escrito. É o mesmo motivo de o destino do botão ser
+     derivado do href renderizado no servidor, e nunca da URL.
+     ------------------------------------------------------------------ */
+  const canalDaUrl = (canais: Record<string, string>): string | null => {
+    const chave = new URLSearchParams(location.search).get('de');
+    return chave && Object.prototype.hasOwnProperty.call(canais, chave) ? canais[chave] : null;
+  };
+
   if (raiz && link) {
-    const base = link.dataset.base ?? '';
+    let base = link.dataset.base ?? '';
     const destino = new URL(link.href);
+
+    try {
+      const canais = JSON.parse(link.dataset.canais ?? '{}') as Record<string, string>;
+      const veioDe = canalDaUrl(canais);
+      if (veioDe) base = `Olá! Vim ${veioDe} e queria agendar uma avaliação.`;
+    } catch {
+      /* fica com a mensagem que veio do servidor */
+    }
 
     const valor = (nome: string) =>
       raiz.querySelector<HTMLInputElement | HTMLSelectElement>(`[data-campo="${nome}"]`)?.value.trim() ?? '';
@@ -128,6 +190,107 @@ const href = linkWhatsApp(mensagemBase);
 
     raiz.addEventListener('input', atualizar);
     raiz.addEventListener('change', atualizar);
+    atualizar(); // aplica o canal já na carga, antes de qualquer digitação
+  }
+
+  /* ==================================================================
+     O BOTÃO SABE QUE HORAS SÃO
+
+     A visitante do BRIEF (seção 1) está no celular, à noite. Até aqui o CTA
+     dizia a mesma coisa às 10h da manhã e às 23h: ela mandava a mensagem,
+     ninguém respondia, e concluía que a clínica não responde. O que faz
+     desistir é a expectativa quebrada, não o horário em si.
+
+     A linha diz quando a clínica abre. Não promete prazo de resposta —
+     isso não depende do site, e prometer o que não se controla é como se
+     perde a confiança que a página inteira existe para construir.
+
+     FUSO DA CLÍNICA, não do aparelho. Date.getHours() devolve a hora de
+     quem visita: brasileiro no exterior procurando dentista para a volta
+     leria "aberta agora" às 3h da manhã de Alfenas.
+     ================================================================== */
+  const linha = document.querySelector<HTMLElement>('.expediente');
+
+  if (linha) {
+    type Faixa = { dias: number[]; abre: string; fecha: string };
+
+    let faixas: Faixa[] = [];
+    try {
+      faixas = JSON.parse(linha.dataset.expediente ?? '[]');
+    } catch {
+      faixas = [];
+    }
+
+    const fuso = linha.dataset.fuso || 'America/Sao_Paulo';
+    const DIAS = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+
+    const paraHora = (hhmm: string) => {
+      const [h, m] = hhmm.split(':');
+      return m === '00' ? `${Number(h)}h` : `${Number(h)}h${m}`;
+    };
+
+    const emMinutos = (hhmm: string) => {
+      const [h, m] = hhmm.split(':');
+      return Number(h) * 60 + Number(m);
+    };
+
+    /** Dia da semana e minutos desde a meia-noite, no fuso da clínica. */
+    const agoraNaClinica = () => {
+      const partes = new Intl.DateTimeFormat('en-US', {
+        timeZone: fuso,
+        weekday: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      }).formatToParts(new Date());
+      const achar = (t: string) => partes.find((p) => p.type === t)?.value ?? '';
+      const semana = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      // hourCycle h23 devolve '24' à meia-noite em alguns motores.
+      const h = Number(achar('hour')) % 24;
+      return { dia: semana.indexOf(achar('weekday')), minutos: h * 60 + Number(achar('minute')) };
+    };
+
+    const faixaDoDia = (dia: number) => faixas.find((f) => f.dias.includes(dia));
+
+    const proximaAbertura = (dia: number, minutos: number) => {
+      const hoje = faixaDoDia(dia);
+      if (hoje && minutos < emMinutos(hoje.abre)) return { quando: 'hoje', faixa: hoje };
+      for (let i = 1; i <= 7; i++) {
+        const d = (dia + i) % 7;
+        const f = faixaDoDia(d);
+        if (f) return { quando: i === 1 ? 'amanhã' : `na ${DIAS[d]}`, faixa: f };
+      }
+      return null;
+    };
+
+    const escrever = () => {
+      if (!faixas.length) return; // modo cliente, horário ainda [PREENCHER]
+
+      const { dia, minutos } = agoraNaClinica();
+      if (dia < 0) return; // fuso desconhecido: melhor calar do que errar
+
+      const hoje = faixaDoDia(dia);
+      const aberta = hoje && minutos >= emMinutos(hoje.abre) && minutos < emMinutos(hoje.fecha);
+
+      if (aberta) {
+        linha.textContent = `A clínica está aberta agora, até as ${paraHora(hoje.fecha)}.`;
+        linha.dataset.estado = 'aberta';
+      } else {
+        const proxima = proximaAbertura(dia, minutos);
+        if (!proxima) return;
+        linha.textContent =
+          `A clínica está fechada agora, abre ${proxima.quando} às ` +
+          `${paraHora(proxima.faixa.abre)}. Se mandar a mensagem, ela fica ` +
+          'no WhatsApp esperando.';
+        linha.dataset.estado = 'fechada';
+      }
+      linha.hidden = false;
+    };
+
+    escrever();
+    // Uma página aberta à noite atravessa a virada do expediente sem
+    // recarregar. Um minuto de granularidade basta e não custa nada.
+    setInterval(escrever, 60_000);
   }
 </script>
 
@@ -169,5 +332,20 @@ const href = linkWhatsApp(mensagemBase);
   .aviso {
     border: 1px solid var(--color-ambar);
     padding: 0.85rem;
+  }
+
+  /* Fio de 1px à esquerda, não caixa nem pastilha. A página não usa cartão
+     em lugar nenhum (BRIEF seção 9), e o âmbar é reservado ao hotspot da
+     prancha — então o estado não pode ser dito por cor de fundo. Aberta
+     acende o fio; fechada deixa ele recuado. */
+  .expediente {
+    border-left: 1px solid color-mix(in srgb, var(--color-linha) 50%, transparent);
+    padding-left: 0.85rem;
+    opacity: 0.85;
+  }
+
+  .expediente[data-estado='aberta'] {
+    border-left-color: var(--color-osso);
+    opacity: 1;
   }
 </style>
