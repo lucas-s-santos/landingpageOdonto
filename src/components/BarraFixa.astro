@@ -7,8 +7,18 @@ import { CTA } from '../data/conteudo';
      É o MESMO CTA: mesmo verbo, mesma cor, mesmo destino.
      Sem JavaScript ela simplesmente não aparece, e o CTA do header e o da
      seção 8 continuam dando conta. -->
+{/*
+  O botão é `.cta`, NÃO `.cta--claro`.
+
+  Estava `--claro`, que é a variante para fundo escuro: `background: osso`
+  sobre uma barra que também é `osso`. Preenchimento, borda e fundo na mesma
+  cor — o botão sumia e a barra virava uma linha de texto centralizada, sem
+  affordance nenhum. O BRIEF (seção 5) diz que o affordance aqui é a cor
+  sólida, e a barra é clara: então o preenchimento é o eucalipto, igual ao
+  CTA da abertura.
+*/}
 <div class="barra" hidden data-barra-fixa>
-  <a href="#agendar" class="cta cta--claro barra__botao">{CTA}</a>
+  <a href="#agendar" class="cta barra__botao">{CTA}</a>
 </div>
 
 <script>
@@ -16,14 +26,41 @@ import { CTA } from '../data/conteudo';
   const gatilho = document.querySelector('#anatomia');
 
   if (barra && gatilho && 'IntersectionObserver' in window) {
+    /**
+     * A barra é `position: fixed`: ela não ocupa espaço no fluxo, e sem
+     * compensação o fim do documento passa POR BAIXO dela. A última linha
+     * ficava permanentemente coberta — e como a barra tem o mesmo `--osso`
+     * do fundo da página, o corte não lia como "há uma barra em cima",
+     * lia como texto quebrado no meio da frase.
+     *
+     * A altura é MEDIDA, não chutada: ela muda com o tamanho da fonte do
+     * sistema, com a área segura do aparelho e com o comprimento do texto
+     * do CTA. Um valor fixo no CSS sairia de sincronia na primeira dessas.
+     *
+     * A classe vai no <html>, e é o que liga o `padding-bottom` no
+     * tokens.css. Sem JavaScript a barra nunca aparece — e aí não sobra
+     * espaço morto no rodapé, porque a classe também não entra.
+     */
+    const medir = () => {
+      document.documentElement.style.setProperty('--altura-barra', `${barra.offsetHeight}px`);
+    };
+
     const observador = new IntersectionObserver(
       ([entrada]) => {
         // aparece quando a seção do dente já passou pelo topo da tela
-        barra.hidden = entrada.boundingClientRect.top > 0;
+        const mostrar = entrada.boundingClientRect.top <= 0;
+        barra.hidden = !mostrar;
+        document.documentElement.classList.toggle('tem-barra', mostrar);
+        if (mostrar) medir();
       },
       { threshold: 0 }
     );
     observador.observe(gatilho);
+
+    // O texto reflui ao girar o aparelho, e a barra pode ganhar uma linha.
+    addEventListener('resize', () => {
+      if (!barra.hidden) medir();
+    });
   }
 </script>
 
