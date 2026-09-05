@@ -13,21 +13,38 @@
  * Este script NÃO substitui leitura humana: ele pega o que é padrão de texto,
  * não julga contexto. Um superlativo escrito de forma criativa passa.
  */
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { readFileSync, readdirSync } from 'node:fs';
+import { resolve, join, relative } from 'node:path';
 
-const html = readFileSync(resolve('dist/index.html'), 'utf8');
+/**
+ * TODAS as páginas do build, não só a inicial.
+ *
+ * Enquanto o site tinha uma rota só, ler dist/index.html dava no mesmo. Não
+ * dá mais: a página de preparo (/primeira-consulta) tem copy própria, e copy
+ * que não passa pela varredura é exatamente por onde uma infração vai ao ar.
+ * A resolução não se aplica só à página inicial.
+ */
+function paginas(dir) {
+  const saida = [];
+  for (const entrada of readdirSync(dir, { withFileTypes: true })) {
+    const caminho = join(dir, entrada.name);
+    if (entrada.isDirectory()) saida.push(...paginas(caminho));
+    else if (entrada.name.endsWith('.html')) saida.push(caminho);
+  }
+  return saida;
+}
 
 // texto visível: sem script, sem style, sem tags, entidades resolvidas
-const visivel = html
-  .replace(/<script[\s\S]*?<\/script>/gi, ' ')
-  .replace(/<style[\s\S]*?<\/style>/gi, ' ')
-  .replace(/<[^>]+>/g, ' ')
-  .replace(/&nbsp;/g, ' ')
-  .replace(/&amp;/g, '&')
-  .replace(/&quot;/g, '"')
-  .replace(/&#39;/g, "'")
-  .replace(/\s+/g, ' ');
+const textoVisivel = (html) =>
+  html
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, ' ');
 
 const PROIBIDO = [
   {
@@ -68,60 +85,68 @@ const OBRIGATORIO = [
 
 let falhou = false;
 
-console.log('CFO-196/2019 — varredura do HTML renderizado\n');
-console.log('proibido:');
-for (const { nome, re } of PROIBIDO) {
-  const achados = [...new Set(visivel.match(re) ?? [])];
-  if (achados.length) {
-    falhou = true;
-    console.log(`  FALHA  ${nome} → ${JSON.stringify(achados)}`);
-  } else {
-    console.log(`  ok     ${nome}`);
+const DIST = resolve('dist');
+const arquivos = paginas(DIST);
+
+console.log('CFO-196/2019 — varredura do HTML renderizado');
+console.log(`${arquivos.length} página(s) no build\n`);
+
+for (const arquivo of arquivos) {
+  const html = readFileSync(arquivo, 'utf8');
+  const visivel = textoVisivel(html);
+  const rota = '/' + relative(DIST, arquivo).replace(/\\/g, '/').replace(/(^|\/)index\.html$/, '$1');
+
+  console.log(`── ${rota}`);
+  console.log('proibido:');
+  for (const { nome, re } of PROIBIDO) {
+    const achados = [...new Set(visivel.match(re) ?? [])];
+    if (achados.length) {
+      falhou = true;
+      console.log(`  FALHA  ${nome} → ${JSON.stringify(achados)}`);
+    } else {
+      console.log(`  ok     ${nome}`);
+    }
   }
+
+  console.log('obrigatório:');
+  for (const { nome, re } of OBRIGATORIO) {
+    if (re.test(visivel)) {
+      console.log(`  ok     ${nome}`);
+    } else {
+      falhou = true;
+      console.log(`  FALHA  ${nome}`);
+    }
+  }
+
+  const pendentes = visivel.match(/\[PREENCHER[^\]]*\]/g) ?? [];
+  // Detecta pelo `noindex`, que vem direto de EH_DEMO. Antes era pelo texto
+  // da faixa de demonstração — e a faixa saiu do topo, o que quebraria a
+  // checagem em silêncio.
+  const ehDemo = /<meta[^>]+name=["']robots["'][^>]*noindex/i.test(html);
+
+  if (ehDemo) {
+    if (!/Demonstra[çc][ãa]o da CalmDev/.test(visivel)) {
+      falhou = true;
+      console.log('  FALHA  nenhuma declaração de demonstração no texto visível.');
+      console.log('         A página usa nome, endereço e equipe fictícios num');
+      console.log('         endereço real. Algo precisa dizer isso a quem abre o link.');
+    } else {
+      console.log('  ok     a declaração de demonstração está no rodapé');
+    }
+    if (pendentes.length) {
+      // Numa demo, [PREENCHER] na tela quebra a venda: o dono do consultório
+      // vê um site inacabado em vez de vê-lo pronto com o nome dele.
+      falhou = true;
+      console.log(`  FALHA  ${pendentes.length} marcador(es) [PREENCHER] visível(is) na tela:`);
+      for (const p of [...new Set(pendentes)]) console.log(`         ${p}`);
+    } else {
+      console.log('  ok     nenhum [PREENCHER] visível');
+    }
+  } else {
+    console.log(`  ${pendentes.length} marcador(es) [PREENCHER] — dado do cliente ainda não inventado.`);
+  }
+  console.log('');
 }
 
-console.log('\nobrigatório:');
-for (const { nome, re } of OBRIGATORIO) {
-  if (re.test(visivel)) {
-    console.log(`  ok     ${nome}`);
-  } else {
-    falhou = true;
-    console.log(`  FALHA  ${nome}`);
-  }
-}
-
-const pendentes = visivel.match(/\[PREENCHER[^\]]*\]/g) ?? [];
-// Detecta pelo `noindex`, que vem direto de EH_DEMO. Antes era pelo texto
-// da faixa de demonstração — e a faixa saiu do topo, o que quebraria a
-// checagem em silêncio.
-const ehDemo = /<meta[^>]+name=["']robots["'][^>]*noindex/i.test(html);
-
-console.log('');
-if (ehDemo) {
-  console.log('modo DEMO: a página traz noindex.');
-  if (!/Demonstra[çc][ãa]o da CalmDev/.test(visivel)) {
-    falhou = true;
-    console.log('  FALHA  nenhuma declaração de demonstração no texto visível.');
-    console.log('         A página usa nome, endereço e equipe fictícios num');
-    console.log('         endereço real. Algo precisa dizer isso a quem abre o link.');
-  } else {
-    console.log('  ok     a declaração de demonstração está no rodapé');
-  }
-  if (pendentes.length) {
-    // Numa demo, [PREENCHER] na tela quebra a venda: o dono do consultório
-    // vê um site inacabado em vez de vê-lo pronto com o nome dele.
-    falhou = true;
-    console.log(`  FALHA  ${pendentes.length} marcador(es) [PREENCHER] visível(is) na tela:`);
-    for (const p of [...new Set(pendentes)]) console.log(`         ${p}`);
-  } else {
-    console.log('  ok     nenhum [PREENCHER] visível');
-  }
-} else {
-  console.log(`${pendentes.length} marcador(es) [PREENCHER] — dado do cliente ainda não inventado.`);
-  if (pendentes.length === 0) {
-    console.log('Nenhum [PREENCHER] restante: confirme que tudo foi preenchido com dado real.');
-  }
-}
-
-console.log(falhou ? '\nREPROVADO' : '\nAPROVADO');
+console.log(falhou ? 'REPROVADO' : 'APROVADO');
 process.exit(falhou ? 1 : 0);

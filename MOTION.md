@@ -103,27 +103,64 @@ No scroll da abertura: o vídeo sobe a `yPercent: 12` enquanto o título sobe a
 
 ## 4. Dente 3D — rotação presa ao scroll
 
-A seção é pinada. Girar por scroll, nunca em loop automático: loop automático é
-decoração, rotação por scroll é a pessoa manipulando o objeto.
+Girar por scroll, nunca em loop automático: loop automático é decoração, rotação por
+scroll é a pessoa manipulando o objeto.
+
+**Sem pin. A versão pinada foi construída e revertida** — está registrada aqui para não
+ser reintroduzida. Era `trigger: '#anatomia', start: 'top top', end: '+=220%', pin: true,
+scrub: 1`. O problema é que `#anatomia` tem **1394px de altura**: pinar um elemento mais
+alto que a viewport prende na tela um bloco que não cabe nela. Medido em 1440×900:
+
+- 494px da seção ficavam abaixo da dobra, **inalcançáveis**, porque o elemento estava preso
+- o quarto rótulo ("Raiz") terminava 310px abaixo da borda, cortado no meio da frase
+- e isso durava os **1980px de scroll** em que a página não andava
+
+O que sobrou foi uma seção que parecia travada com o texto picotado. O pin-spacer ainda
+somava 1980px mortos à altura do documento.
+
+Sem o pin, a prancha inteira — figura mais os quatro rótulos — tem 815px e **cabe** numa
+janela de 900px: ela se monta na tela e a pessoa lê tudo de uma vez.
 
 ```js
-ScrollTrigger.create({
-  trigger: '#anatomia',
-  start: 'top top', end: '+=220%', pin: true, scrub: 1,
-  onUpdate: self => {
-    grupo.rotation.y = self.progress * Math.PI * 1.6
-    grupo.rotation.x = Math.sin(self.progress * Math.PI) * 0.18
-    camera.position.z = 3.4 - self.progress * 0.9   // aproxima ao longo da seção
-  }
-})
+// medido dentro do laço de render, na fase de leitura — sem ouvinte de scroll,
+// o que também funciona com o Lenis, que move o scroll por conta própria
+const r = prancha.getBoundingClientRect()          // a PRANCHA, não a seção
+const alvo = clamp((innerHeight - r.top) / (r.height + innerHeight), 0, 1)
+
+progresso = lerp(progresso, alvo, 0.12)            // a inércia que era do scrub
+
+grupo.rotation.y = (progresso - 0.5) * Math.PI * 1.0   // 0.7 no mobile
+grupo.rotation.x = Math.sin(progresso * Math.PI) * 0.18
+camera.position.z = 3.4 - Math.sin(progresso * Math.PI) * 0.6
 ```
 
-`scrub: 1` (não `true`) dá um segundo de inércia — o dente continua girando um instante
-depois que a pessoa para. É o detalhe que faz parecer objeto físico e não valor ligado
-num slider.
+Três decisões dentro disso:
+
+**Ancorar na prancha, não na seção.** A seção carrega 368px de respiro e o título;
+ancorada nela, metade do giro era gasta com a figura ainda fora da tela.
+
+**Giro centrado — `(progresso - 0.5)`, não `progresso`.** Saindo de 0 até 1.6π, o dente
+passava por 144° exatamente quando a prancha ficava centralizada: de costas na hora de
+ler, com os quatro pontos apontando para faces invisíveis. Centrado, a pose frontal cai
+no meio do percurso e o giro acontece na entrada e na saída. ±90° nos extremos, ±27° na
+janela de leitura.
+
+**Aproximação centrada também.** `sin(progresso · π)` em vez de rampa: o dente chega
+mais perto quando está sendo lido e recua ao sair, em vez de estar mais longe justamente
+no começo da leitura.
+
+A inércia que o `scrub: 1` dava não se perdeu — virou o `lerp(0.12)` do laço de render,
+que já existia para o mobile. Um caminho só agora, desktop e celular.
+
+**A figura é `position: sticky`** acima de 768px, com `align-self: start` (item de grid
+estica por padrão e sticky não teria para onde correr). Ela segura no máximo 254px, a
+diferença de altura entre a coluna dos rótulos e ela. Não é o pin de volta: a página
+rola o tempo todo. Existe pelas telas baixas — em 1440×900 nem chega a atuar, mas num
+notebook de 1366×768, com ~660px de viewport, a figura sairia por cima enquanto a pessoa
+lê o quarto rótulo.
 
 Arraste com o mouse também gira, somando à rotação do scroll. Ao soltar, a rotação
-manual volta a zero em 1.2s com `power2.out`.
+manual volta a zero por interpolação no laço, em ~1.2s.
 
 ## 5. Prancha anatômica — a cascata
 

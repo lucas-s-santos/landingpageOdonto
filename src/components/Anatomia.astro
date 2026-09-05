@@ -131,6 +131,26 @@ const nomeDoTratamento = (id: string) => TRATAMENTOS.find((t) => t.id === id)?.n
     padding: 1.25rem;
   }
 
+  /* A figura acompanha a leitura dos rótulos, em vez de subir junto.
+     NÃO é o pin de volta: a página continua rolando o tempo todo, só a
+     figura é que segura, e por 254px no máximo — a diferença de altura
+     entre a coluna dos rótulos (815px) e ela (561px).
+
+     Existe pelas telas baixas. Em 1440x900 a prancha inteira cabe e o
+     sticky nem chega a atuar; num notebook de 1366x768, que sobra ~660px
+     de viewport, a figura sairia por cima enquanto a pessoa lê o quarto
+     rótulo. Presa, ela fica no lugar até o último texto passar.
+
+     `align-self: start` é obrigatório: item de grid estica por padrão,
+     fica com a altura da linha inteira e sticky não tem para onde correr. */
+  @media (min-width: 768px) {
+    .prancha__figura {
+      position: sticky;
+      top: clamp(1.5rem, calc((100vh - 36rem) / 2), 6rem);
+      align-self: start;
+    }
+  }
+
   .prancha__estatica,
   .prancha__canvas {
     position: absolute;

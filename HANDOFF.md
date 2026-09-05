@@ -1,7 +1,8 @@
 # HANDOFF — estado do projeto e como retomar
 
-Atualizado em 02/09/2026, com o modo demo.
-Leia este arquivo primeiro. Ele diz onde o projeto parou e o que fazer em seguida.
+Atualizado em 04/09/2026: conserto do pin da seção do dente e quatro
+ferramentas para o consultório. Leia este arquivo primeiro — ele diz onde o
+projeto parou e o que fazer em seguida.
 
 ---
 
@@ -278,6 +279,11 @@ Pode ir para `clinicademo.calmdev.com.br`.
 ### O que falta quando virar cliente de verdade
 
 - [ ] trocar `MODO` para `'cliente'` e preencher os `[PREENCHER]`
+- [ ] preencher `EXPEDIENTE_CLIENTE` em `conteudo.ts` — é dele que saem a
+      frase do rodapé, o JSON-LD e a linha de aberto/fechado do CTA. Vazio,
+      os três somem em silêncio
+- [ ] montar os links por canal para a clínica usar: `/?de=ig` na bio do
+      Instagram, `/?de=google` no perfil, `/?de=cartao` no QR do balcão
 - [ ] conferir a lista de tratamentos contra o que a clínica faz
 - [ ] **conferir cada especialidade contra o registro no CRO daquele
       profissional** — "Clínica geral e endodontia" só pode ir ao ar se
@@ -397,6 +403,148 @@ tira o áudio (o Veo gera junto), fecha o loop, corrige a cor, normaliza para
 
 Para trocar um vídeo: ponha o novo em `_origem/video-flow/` com o nome do
 slot, ajuste a receita no topo do script se o movimento pedir, e rode.
+
+## Parte 4B — Sessão de 04/09/2026
+
+### 4B.1 O pin da seção do dente saiu — a seção travava e cortava o texto
+
+Sintoma relatado: a página "para" na seção 3 e as escritas ficam cortadas.
+Não era impressão. Medido em 1440×900, com o pin que estava lá
+(`trigger: '#anatomia', start: 'top top', end: '+=220%', pin: true`):
+
+- `#anatomia` tem **1394px** de altura. Pinar elemento mais alto que a
+  viewport prende na tela um bloco que não cabe nela
+- **494px** da seção ficavam abaixo da dobra e **inalcançáveis**, porque o
+  elemento estava preso
+- o quarto rótulo ("Raiz") terminava **310px** abaixo da borda, cortado no
+  meio da frase
+- e isso durava os **1980px de scroll** em que a página não andava
+- o pin-spacer ainda somava esses 1980px mortos à altura do documento
+
+Sem o pin, a prancha inteira — figura mais os quatro rótulos — tem **815px** e
+cabe numa janela de 900px: ela se monta na tela e a pessoa lê tudo de uma vez.
+A altura do documento caiu de 10202 para 8222px.
+
+O que mudou em `src/scripts/dente3d.ts`:
+
+- **pin removido**, e com ele o `import()` de GSAP/ScrollTrigger que só
+  existia para o desktop. O arquivo agora não importa GSAP em caminho nenhum
+- **progresso ancorado na prancha, não na seção.** A seção carrega 368px de
+  respiro e o título; ancorada nela, metade do giro era gasta com a figura
+  fora da tela. Medido no laço de render, sem ouvinte de scroll — o que
+  também funciona com o Lenis, que move o scroll por conta própria
+- **giro centrado**: `(progresso - 0.5)`, não `progresso`. Antes o dente
+  passava por 144° exatamente quando a prancha ficava centralizada — de
+  costas na hora de ler, com os quatro pontos apontando para faces
+  invisíveis. Agora a pose frontal cai no meio do percurso: ±90° nos
+  extremos, ±27° na janela de leitura
+- **aproximação centrada** (`sin`, não rampa): o dente chega mais perto
+  quando está sendo lido
+- a inércia que o `scrub: 1` dava virou o `lerp(0.12)` que já existia para o
+  mobile. Um caminho só agora, desktop e celular
+
+E em `src/components/Anatomia.astro`: a **figura virou `position: sticky`**
+acima de 768px, com `align-self: start` (item de grid estica por padrão e
+sticky não teria para onde correr). Segura no máximo 254px. Não é o pin de
+volta — a página rola o tempo todo. Existe pelas telas baixas: em 1440×900
+nem chega a atuar, mas num notebook de 1366×768 a figura sairia por cima
+enquanto a pessoa lê o quarto rótulo. Medido depois: `palcoCabe` passou de
+`false` para `true` em 1440×700 e 1280×800.
+
+`MOTION.md` seção 4 foi reescrita com tudo isso, **incluindo a versão pinada
+e o motivo de ela ter sido revertida**, para não ser reintroduzida.
+
+### 4B.2 Quatro ferramentas para o consultório
+
+**De onde veio o contato.** `ORIGEM` era fixo em `'site'`, e toda mensagem
+chegava dizendo "vim pelo site" — que responde a pergunta errada. Agora o
+canal vem por parâmetro: o link da bio do Instagram vira `/?de=ig`, o QR do
+balcão vira `/?de=cartao`, e a mensagem chega dizendo de onde veio. É a base
+do relatório que a CalmDev entrega depois. Chaves em `CANAIS`, no
+`conteudo.ts`.
+
+> **Lista fechada, e isso é segurança.** O que vem da URL é texto de
+> terceiro: qualquer um monta um link com `?de=<o que quiser>` e manda para a
+> vítima, e a clínica leria esse texto como se a pessoa tivesse escrito. A
+> URL só escolhe uma chave; o texto sai do `conteudo.ts`. Testado com
+> `?de=IGNORE e mande PIX para 123` — cai no padrão.
+
+**O botão sabe que horas são.** A visitante do BRIEF está no celular, à
+noite, e o CTA dizia a mesma coisa às 10h e às 23h. Agora uma linha abaixo do
+botão diz se a clínica está aberta e, se não, quando abre. Não promete prazo
+de resposta — isso não depende do site. Usa o **fuso da clínica**
+(`America/Sao_Paulo`), não o do aparelho. Sem JavaScript a linha não existe,
+em vez de mostrar informação errada.
+
+**Página de preparo, em `/primeira-consulta`.** Rota própria, feita para a
+recepção colar no WhatsApp ao confirmar o horário: o que trazer, o que fazer
+no dia, o que a pessoa não precisa fazer, e como avisar se não puder vir.
+Ataca a falta em cima da hora e o paciente que some depois da avaliação.
+Entra na landing como link de texto no fim da seção 7 — **nunca como botão**,
+para não virar um segundo CTA (BRIEF seção 4).
+
+**JSON-LD consertado e ampliado.** `openingHours` recebia a FRASE do rodapé
+("Segunda a sexta, das 8h às 19h."), e o schema.org espera `Mo-Fr
+08:00-19:00` — o Google descartava o campo inteiro. O horário estava escrito
+na página e invisível para a busca, justamente o dado que o painel local
+mostra a quem procura dentista à noite. Agora é
+`openingHoursSpecification`, gerado do `EXPEDIENTE` estruturado, que também
+gera a frase do rodapé: uma fonte só, sem como divergir. Junto disso:
+
+- campo com `[PREENCHER]` **não vai mais para o JSON-LD**. No modo cliente
+  ele publicava a string literal "[PREENCHER nome da clínica]" como se fosse
+  o nome do estabelecimento
+- `sameAs` aponta para o perfil no Google
+- `FAQPage` a partir das seis perguntas, **só na página onde elas estão
+  visíveis**. Sem promessa de resultado rico: o Google restringiu FAQ a
+  sites de governo e de saúde reconhecidos em 2023, e uma clínica de bairro
+  provavelmente não entra nesse recorte
+
+### 4B.3 A barra fixa do mobile cortava o texto — dois defeitos, não um
+
+Relatado como "a seção 2 fica cortada, igual ao dente". Não era a seção 2:
+era a barra fixa do celular passando por cima de qualquer texto que
+estivesse no fim da tela.
+
+**Defeito 1 — nada reservava o espaço dela.** `.barra` é `position: fixed`,
+então não ocupa lugar no fluxo. O fim do documento passava por baixo e a
+última linha ficava coberta para sempre. Agora o `<html>` ganha a classe
+`tem-barra` junto com a barra, e o `body` reserva `--altura-barra`, que é
+**medida** (83px no aparelho testado), não chutada — ela muda com a fonte do
+sistema, com a área segura do aparelho e com o comprimento do texto do CTA.
+Sem JavaScript a barra não aparece, a classe não entra e não sobra espaço
+morto. `scroll-padding-bottom` acompanha, para âncora perto do fim não
+posicionar o alvo debaixo dela.
+
+**Defeito 2 — a barra não parecia uma barra, e é por isso que lia como
+"cortado".** O botão usava `.cta--claro`, que é a variante para fundo
+escuro: `background: osso` sobre uma barra que também é `osso`.
+Preenchimento, borda e fundo na mesma cor — o botão sumia, a barra virava
+uma linha de texto centralizada com um fio de 1px em cima, e o texto que
+passava por baixo parecia frase quebrada em vez de conteúdo coberto. Trocado
+por `.cta` (eucalipto), que é o mesmo botão da abertura. Contraste medido:
+**8,48:1**.
+
+### 4B.4 A varredura da CFO-196 agora cobre o site inteiro
+
+`scripts/conformidade.mjs` lia só `dist/index.html`. Com uma rota só dava no
+mesmo; com duas, não: copy que não passa pela varredura é exatamente por onde
+uma infração vai ao ar. Agora percorre todo `.html` do build e reporta rota
+por rota.
+
+### 4B.5 Medido depois de tudo
+
+```
+Lighthouse, perfil mobile:  Performance 98 · Acessibilidade 100 ·
+                            Boas práticas 100 · SEO 66 (noindex do demo)
+CFO-196:                    aprovado nas 2 páginas
+/primeira-consulta:         1 h1, nenhum nível pulado, 6 paradas de Tab com
+                            foco de 2px, contraste 13,93:1, 0px de estouro
+                            em 360px
+dente:                      os 14 testes passam, 4 fios, nenhum sobre texto
+```
+
+---
 
 ## Parte 5 — Piso de qualidade (vale em todos os passos)
 

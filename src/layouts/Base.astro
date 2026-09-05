@@ -1,37 +1,108 @@
 ---
 import '../styles/tokens.css';
-import { CLINICA, EH_DEMO } from '../data/conteudo';
+import { CLINICA, DIA_SCHEMA, EH_DEMO, EXPEDIENTE, PERGUNTAS } from '../data/conteudo';
 
 interface Props {
   titulo: string;
   descricao: string;
+  /**
+   * Emite o JSON-LD FAQPage nesta página.
+   *
+   * Opcional e desligado por padrão de propósito: a marcação de FAQ vale
+   * para a página onde as perguntas estão VISÍVEIS na tela. Emitir em todas
+   * as rotas marcaria como pergunta respondida um texto que ali não existe,
+   * que é o erro clássico desse tipo de marcação — e ainda repetiria a
+   * mesma entidade em duas URLs.
+   */
+  faq?: boolean;
 }
 
-const { titulo, descricao } = Astro.props;
+const { titulo, descricao, faq = false } = Astro.props;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 
 /**
- * JSON-LD Dentist. Os campos com [PREENCHER] têm que ser trocados por dado
- * real antes de publicar — dado inventado aqui é pior do que campo ausente,
- * porque vai para o Google como se fosse verdade.
+ * Campo não preenchido não vai para o Google.
+ *
+ * Antes, no modo cliente, o JSON-LD publicava a string literal
+ * "[PREENCHER nome da clínica]" como se fosse o nome do estabelecimento.
+ * Campo ausente é ruim; campo presente com lixo dentro é pior, porque o
+ * buscador acredita. Some com o que não estiver preenchido — e o
+ * "npm run conformidade" continua acusando o [PREENCHER] no HTML visível,
+ * que é onde ele tem que aparecer.
  */
-const jsonLd = {
+const preenchido = (v: unknown): v is string =>
+  typeof v === 'string' && v.trim() !== '' && !v.includes('[PREENCHER');
+
+const limpar = (obj: Record<string, unknown>): Record<string, unknown> =>
+  Object.fromEntries(
+    Object.entries(obj).filter(([, v]) => {
+      if (typeof v === 'string') return preenchido(v);
+      if (Array.isArray(v)) return v.length > 0;
+      return v != null;
+    })
+  );
+
+/**
+ * JSON-LD Dentist.
+ *
+ * "openingHoursSpecification" no lugar de "openingHours". O campo antigo
+ * recebia a FRASE do rodapé ("Segunda a sexta, das 8h às 19h."), e o
+ * schema.org espera "Mo-Fr 08:00-19:00" — o Google descartava o campo
+ * inteiro. Resultado: o horário estava escrito na página e invisível para a
+ * busca, justamente o dado que o painel local mostra a quem procura
+ * dentista à noite. A forma com dayOfWeek/opens/closes é explícita e não
+ * depende de o parser entender abreviação.
+ */
+const jsonLd = limpar({
   '@context': 'https://schema.org',
   '@type': 'Dentist',
   name: CLINICA.nome,
   url: canonical.origin,
   telephone: CLINICA.telefone,
-  address: {
+  address: limpar({
     '@type': 'PostalAddress',
     streetAddress: CLINICA.endereco,
     addressLocality: CLINICA.cidade,
     addressRegion: CLINICA.uf,
     postalCode: CLINICA.cep,
     addressCountry: 'BR',
-  },
-  openingHours: CLINICA.horario,
+  }),
+  openingHoursSpecification: EXPEDIENTE.map((faixa) => ({
+    '@type': 'OpeningHoursSpecification',
+    dayOfWeek: faixa.dias.map((d) => DIA_SCHEMA[d]),
+    opens: faixa.abre,
+    closes: faixa.fecha,
+  })),
+  // O perfil no Google é o único lugar onde as avaliações moram. Declarar o
+  // vínculo ajuda o buscador a ligar site e ficha; republicar as avaliações
+  // aqui seria infração da CFO-196 (BRIEF seção 3).
+  sameAs: preenchido(CLINICA.perfilGoogle) ? [CLINICA.perfilGoogle] : [],
   areaServed: CLINICA.cidade,
-};
+});
+
+/**
+ * FAQPage a partir da seção 7, que já é pergunta e resposta honesta.
+ *
+ * Sem promessa de resultado rico: em 2023 o Google restringiu os resultados
+ * ricos de FAQ a sites de governo e de saúde reconhecidos, e uma clínica de
+ * bairro provavelmente não entra nesse recorte. O que a marcação garante é
+ * outra coisa — que o buscador leia a página como perguntas respondidas em
+ * vez de um bloco de texto, e custa zero.
+ *
+ * As respostas saem do mesmo conteudo.ts da página visível, então copy e
+ * marcação não têm como divergir.
+ */
+const faqLd = faq && PERGUNTAS.length
+  ? {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: PERGUNTAS.map((p) => ({
+        '@type': 'Question',
+        name: p.pergunta,
+        acceptedAnswer: { '@type': 'Answer', text: p.resposta },
+      })),
+    }
+  : null;
 ---
 
 <!doctype html>
@@ -80,6 +151,16 @@ const jsonLd = {
       is:inline
       set:html={JSON.stringify(jsonLd).replace(/</g, '\\u003c')}
     />
+
+    {
+      faqLd && (
+        <script
+          type="application/ld+json"
+          is:inline
+          set:html={JSON.stringify(faqLd).replace(/</g, '\\u003c')}
+        />
+      )
+    }
 
     <slot name="head" />
   </head>

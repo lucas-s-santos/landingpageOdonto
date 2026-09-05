@@ -38,6 +38,21 @@ const total = PRIMEIRA_CONSULTA.etapas.reduce((s, e) => s + e.minutos, 0);
     Somando, <time datetime={`PT${total}M`}>cerca de {total} minutos</time>. Se você chegar
     com dor, a ordem muda: a gente cuida da dor primeiro.
   </p>
+
+  {/*
+    Link de texto, e de propósito não é um botão.
+
+    A regra do CTA único (BRIEF seção 4) diz que nada pode competir com
+    "Agendar avaliação". Um segundo botão aqui, no ponto mais quente da
+    página, roubaria exatamente o clique que a seção 8 existe para receber.
+    Como link discreto ele serve a quem já marcou — e o uso principal desta
+    página nem passa por aqui: é a recepção colando o endereço no WhatsApp.
+  */}
+  <p class="col-span-full text-rotulo mt-4 md:col-span-10">
+    <a class="ligacao-preparo" href="/primeira-consulta">
+      O que trazer e como se preparar
+    </a>
+  </p>
 </section>
 
 <style>
@@ -74,5 +89,14 @@ const total = PRIMEIRA_CONSULTA.etapas.reduce((s, e) => s + e.minutos, 0);
     opacity: 0.75;
     font-variant-numeric: tabular-nums;
     text-align: right;
+  }
+
+  .ligacao-preparo {
+    text-decoration-color: color-mix(in srgb, var(--color-tinta) 40%, transparent);
+    text-underline-offset: 4px;
+  }
+
+  .ligacao-preparo:hover {
+    text-decoration-color: currentColor;
   }
 </style>

@@ -71,7 +71,6 @@ const DEMO = {
   // basta trocar `telefone` aqui de volta por um não atribuível.
   telefone: '(35) 98886-2172',
   whatsapp: '5535988862172',
-  horario: 'Segunda a sexta, das 8h às 19h. Sábado, das 8h às 12h.',
   perfilGoogle: 'https://www.google.com/maps',
 } as const;
 
@@ -90,12 +89,84 @@ const CLIENTE = {
    * vez de um link quebrado — ver `linkWhatsApp()` no fim do arquivo.
    */
   whatsapp: '[PREENCHER]',
-  horario: '[PREENCHER horário de atendimento]',
   /** URL do perfil no Google. As avaliações ficam lá, nunca republicadas aqui. */
   perfilGoogle: '[PREENCHER link do perfil no Google]',
 } as const;
 
 export const CLINICA = EH_DEMO ? DEMO : CLIENTE;
+
+/* ==========================================================================
+   EXPEDIENTE — horário como DADO, não como frase
+   ==========================================================================
+
+   Era uma string solta: 'Segunda a sexta, das 8h às 19h. Sábado, das 8h às
+   12h.' Isso quebrava duas coisas ao mesmo tempo.
+
+   1. O JSON-LD. `openingHours` do schema.org espera `Mo-Fr 08:00-19:00`.
+      Recebendo prosa, o Google descarta o campo — e o horário é justamente
+      o que o painel local mostra para quem procura dentista de madrugada.
+      Estava escrito no site e invisível para a busca.
+
+   2. O botão. Sem saber quando a clínica abre, o CTA diz a mesma coisa às
+      10h da manhã e às 23h. A visitante do BRIEF (seção 1) está no celular,
+      à noite: ela manda mensagem, ninguém responde, e ela conclui que a
+      clínica não responde.
+
+   Uma fonte só. A frase do rodapé é GERADA daqui, então rodapé, JSON-LD e
+   botão nunca discordam. */
+
+/** 0 = domingo … 6 = sábado, a mesma convenção de Date.getDay(). */
+export type Faixa = { readonly dias: readonly number[]; readonly abre: string; readonly fecha: string };
+
+const EXPEDIENTE_DEMO: readonly Faixa[] = [
+  { dias: [1, 2, 3, 4, 5], abre: '08:00', fecha: '19:00' },
+  { dias: [6], abre: '08:00', fecha: '12:00' },
+];
+
+/** Vazio = não preenchido. O rodapé mostra [PREENCHER] e o botão não
+    arrisca palpite nenhum sobre estar aberto. */
+const EXPEDIENTE_CLIENTE: readonly Faixa[] = [];
+
+export const EXPEDIENTE = EH_DEMO ? EXPEDIENTE_DEMO : EXPEDIENTE_CLIENTE;
+
+/**
+ * O fuso da clínica, não o de quem visita.
+ *
+ * `new Date().getHours()` devolve a hora do aparelho. Alguém consultando de
+ * outro fuso — e brasileiro fora do país procurando dentista para a volta
+ * não é caso raro — leria "aberta agora" às 3h da manhã de Alfenas.
+ */
+export const FUSO = 'America/Sao_Paulo';
+
+const DIA_LONGO = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+
+/** '08:00' → '8h'  ·  '12:30' → '12h30'. Como se fala, não como se digita. */
+export function hora(hhmm: string): string {
+  const [h, m] = hhmm.split(':');
+  return m === '00' ? `${Number(h)}h` : `${Number(h)}h${m}`;
+}
+
+/** [1,2,3,4,5] → 'Segunda a sexta'  ·  [6] → 'Sábado'  ·  [2,4] → 'Terça e quinta' */
+function nomeiaDias(dias: readonly number[]): string {
+  const d = [...dias].sort((a, b) => a - b);
+  const contiguo = d.length > 2 && d.every((v, i) => i === 0 || v === d[i - 1] + 1);
+  if (contiguo) return `${DIA_LONGO[d[0]]} a ${DIA_LONGO[d[d.length - 1]].toLowerCase()}`;
+  const nomes = d.map((v, i) => (i === 0 ? DIA_LONGO[v] : DIA_LONGO[v].toLowerCase()));
+  return nomes.length === 1 ? nomes[0] : `${nomes.slice(0, -1).join(', ')} e ${nomes[nomes.length - 1]}`;
+}
+
+/**
+ * A frase do rodapé, gerada do dado. Enquanto o expediente estiver vazio,
+ * devolve o [PREENCHER] — mesmo comportamento de antes, sem dado inventado.
+ */
+export const HORARIO_TEXTO: string = EXPEDIENTE.length
+  ? EXPEDIENTE.map((f) => `${nomeiaDias(f.dias)}, das ${hora(f.abre)} às ${hora(f.fecha)}.`).join(' ')
+  : '[PREENCHER horário de atendimento]';
+
+/** Nomes de dia que o schema.org aceita, na ordem de `Date.getDay()`. */
+export const DIA_SCHEMA = [
+  'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday',
+] as const;
 
 export const ABERTURA = {
   /**
@@ -307,6 +378,107 @@ export const PRIMEIRA_CONSULTA = {
   ],
 } as const;
 
+/* ==========================================================================
+   PÁGINA DE PREPARO — /primeira-consulta
+   ==========================================================================
+
+   Não é uma seção da landing: é uma rota própria, feita para a recepção
+   colar no WhatsApp quando confirma o horário. Ataca as duas dores mais
+   caras do BRIEF (seção 2): a falta em cima da hora e o paciente que vem na
+   avaliação e some.
+
+   CFO-196: tudo aqui é conteúdo educativo e informação de estrutura, que a
+   resolução permite. Nenhuma linha fala de preço, forma de pagamento,
+   resultado esperado ou tempo de tratamento prometido.
+
+   O último bloco é o que mais devolve horário para a agenda. Ele pede o
+   aviso sem cobrar e sem ameaçar — quem sente que vai levar bronca não
+   avisa, simplesmente não aparece. */
+export const PREPARO = {
+  titulo: 'Antes da sua primeira consulta',
+  intro:
+    'Nada aqui é obrigatório. É só o que costuma fazer a consulta render mais, e o que as pessoas mais perguntam na véspera.',
+
+  levar: {
+    titulo: 'O que trazer',
+    itens: [
+      'Um documento com foto.',
+      'A lista dos remédios que você toma, inclusive os de uso contínuo e os naturais. Se for mais fácil, tire foto das caixas.',
+      'Radiografias e exames de outros atendimentos, se você tiver, mesmo antigos.',
+      'O nome do seu convênio, se usar um.',
+    ],
+  },
+
+  antes: {
+    titulo: 'No dia',
+    itens: [
+      'Coma antes de vir. Consulta em jejum costuma passar mal, e não há nenhum exame aqui que peça jejum.',
+      'Tome os seus remédios de sempre no horário de sempre. Não pare nada por causa da consulta.',
+      'Escove os dentes antes de sair, se der. Se não der, tem escova aqui.',
+      'Chegue uns dez minutos antes: a ficha de saúde é curta, mas é melhor preencher sem pressa.',
+    ],
+  },
+
+  naoPrecisa: {
+    titulo: 'O que você não precisa fazer',
+    itens: [
+      'Não precisa se desculpar pelo estado dos dentes. A gente não está aqui para isso.',
+      'Não precisa decidir nada no dia. Você sai com o plano por escrito e leva para pensar.',
+      'Não precisa vir sozinha. Se for mais confortável, traga alguém.',
+      'Se você tem medo de dentista, diga isso na chegada. Muda o jeito de conduzir a consulta.',
+    ],
+  },
+
+  avisar: {
+    titulo: 'Se não der para vir',
+    texto:
+      'Avise pelo WhatsApp, mesmo em cima da hora e mesmo sem motivo. O horário volta para a agenda e vai para alguém que está com dor esperando. Remarcar é uma mensagem.',
+  },
+} as const;
+
+/* ==========================================================================
+   PERGUNTAS — a seção 7 em forma de pergunta e resposta
+   ==========================================================================
+
+   Alimenta o JSON-LD FAQPage do Base.astro e a página de preparo. É a mesma
+   informação da seção 7, dita do jeito que a pessoa pergunta.
+
+   CFO-196 de novo: resposta diz o que ACONTECE, nunca o que a pessoa vai
+   sentir nem o que vai conseguir. "Não dói" é promessa de resultado; "é
+   exame e conversa, sem procedimento" é descrição do que ocorre. */
+export const PERGUNTAS = [
+  {
+    pergunta: 'Quanto tempo dura a primeira consulta?',
+    resposta:
+      'Cerca de uma hora, contando a ficha de saúde, a conversa, o exame e a explicação do que foi encontrado.',
+  },
+  {
+    pergunta: 'Vou fazer algum procedimento já na primeira consulta?',
+    resposta:
+      'Não. A primeira consulta é exame e conversa. A exceção é quem chega com dor: aí a gente tenta resolver a dor no mesmo dia.',
+  },
+  {
+    pergunta: 'O que eu preciso levar?',
+    resposta:
+      'Um documento com foto, a lista dos remédios que você toma e, se tiver, radiografias ou exames de outros atendimentos. Nada disso impede a consulta se você esquecer.',
+  },
+  {
+    pergunta: 'Vou sair com o tratamento marcado?',
+    resposta:
+      'Só se você quiser. Você sai com o plano por escrito e pode levar para pensar, pedir outra opinião ou voltar depois.',
+  },
+  {
+    pergunta: 'Faz radiografia na hora?',
+    resposta:
+      'Se for necessária para enxergar o que o exame clínico não mostra. Nem todo caso precisa, e isso é decidido durante o exame.',
+  },
+  {
+    pergunta: 'Tenho medo de dentista. Como funciona?',
+    resposta:
+      'Diga isso na chegada, antes de sentar. A consulta é conduzida em outro ritmo, com pausa quando você pedir, e nada é feito sem ser explicado antes.',
+  },
+] as const;
+
 export const AGENDAR = {
   titulo: 'Manda uma mensagem',
   apoio:
@@ -324,7 +496,39 @@ export const AGENDAR = {
   horarios: ['De manhã', 'À tarde', 'À noite'],
 } as const;
 
-/** Marcador de origem: é como a clínica sabe que o contato veio do site. */
+/* ==========================================================================
+   DE ONDE VEIO O CONTATO
+   ==========================================================================
+
+   Era `ORIGEM = 'site'`, fixo. Toda mensagem chegava dizendo "vim pelo
+   site", o que responde a pergunta errada: a clínica já sabe que veio do
+   site, o que ela não sabe é qual canal levou a pessoa até lá. É a dor 1 do
+   BRIEF (agenda com buraco) sem o dado que permitiria atacá-la — e é a base
+   do relatório que a CalmDev entrega depois.
+
+   O canal vem por parâmetro de URL: o link da bio do Instagram vira
+   `/?de=ig`, o QR do balcão vira `/?de=cartao`, e a mensagem chega dizendo
+   de onde veio.
+
+   LISTA FECHADA, e isso é segurança, não capricho. O que vem da URL é texto
+   de terceiro: qualquer um monta um link com `?de=<o que quiser>` e manda
+   para a vítima. Sem a lista, esse texto entraria na mensagem do WhatsApp,
+   e a clínica leria como se a pessoa tivesse escrito. A URL só escolhe uma
+   chave; o texto sai daqui. */
+
+export const CANAIS: Readonly<Record<string, string>> = {
+  site: 'pelo site',
+  ig: 'pelo Instagram',
+  google: 'pelo perfil do Google',
+  cartao: 'pelo cartão da clínica',
+  bio: 'pelo link da bio',
+  indicacao: 'por indicação',
+};
+
+/** O fragmento usado quando não há parâmetro, ou quando ele não está na lista. */
+export const CANAL_PADRAO = 'site';
+
+/** Mantido para quem ainda importa o nome antigo. */
 export const ORIGEM = 'site';
 
 /**

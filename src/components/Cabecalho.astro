@@ -1,5 +1,19 @@
 ---
 import { CLINICA, CTA } from '../data/conteudo';
+
+interface Props {
+  /**
+   * Destino do CTA do cabeçalho.
+   *
+   * O padrão é a âncora da própria página, que é o caso da home. Existe
+   * porque fora dela a âncora não existe: em /primeira-consulta o botão
+   * apontava para um #agendar inexistente e simplesmente não fazia nada ao
+   * ser clicado — pior que não ter botão, porque parece que funciona.
+   */
+  destinoCta?: string;
+}
+
+const { destinoCta = '#agendar' } = Astro.props;
 ---
 
 <!-- Header estático, não fixo. Sem fundo próprio, sem borda: ele é parte da
@@ -11,6 +25,6 @@ import { CLINICA, CTA } from '../data/conteudo';
   </p>
 
   <p class="col-span-4 justify-self-end sm:col-span-6">
-    <a href="#agendar" class="cta cta--vazado">{CTA}</a>
+    <a href={destinoCta} class="cta cta--vazado">{CTA}</a>
   </p>
 </header>

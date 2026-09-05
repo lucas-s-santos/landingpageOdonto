@@ -190,6 +190,33 @@
     text-rendering: optimizeLegibility;
   }
 
+  /* Espaço para a barra fixa do mobile.
+
+     Ela é `position: fixed`, então não ocupa lugar no fluxo: sem isto, o
+     fim do documento passa por baixo dela e a última linha fica coberta
+     para sempre. Como a barra tem o mesmo `--osso` do fundo, o resultado
+     não lia como "tem uma barra em cima" — lia como frase cortada no meio.
+
+     A altura vem MEDIDA do BarraFixa.astro, junto com a classe. Sem
+     JavaScript a barra não aparece, a classe não entra, e não sobra espaço
+     morto. Acima de 900px a barra não existe, então a variável nem é lida.
+
+     `scroll-padding-bottom` acompanha: sem ele, uma âncora que caia perto
+     do fim do documento posiciona o alvo debaixo da barra. */
+  .tem-barra body {
+    padding-bottom: var(--altura-barra, 0px);
+  }
+
+  .tem-barra {
+    scroll-padding-bottom: var(--altura-barra, 0px);
+  }
+
+  @media (min-width: 900px) {
+    .tem-barra body {
+      padding-bottom: 0;
+    }
+  }
+
   /* Sentence case em 100% do texto, botão e rótulo incluídos.
      Nenhum text-transform em lugar nenhum — item 5 da seção 9. */
   h1,
