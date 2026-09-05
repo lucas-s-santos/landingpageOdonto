@@ -16,8 +16,8 @@
  * SEM GSAP de propósito. O laço de render já roda a cada frame, então
  * suavizar um valor em direção a um alvo é uma linha de interpolação — não
  * justifica arrastar uma biblioteca de 150 KB para o caminho do celular, que
- * é onde o piso de Lighthouse 90 é medido. O pin do desktop precisa do
- * ScrollTrigger, e só ele é importado, só lá.
+ * é onde o piso de Lighthouse 90 é medido. Desde que o pin saiu, este
+ * arquivo não importa GSAP em nenhum caminho — nem no desktop.
  */
 
 /** Interpolação exponencial estável em qualquer taxa de quadros. */
@@ -209,51 +209,48 @@ export async function montarDente(opcoes: { desktop: boolean }): Promise<Cena | 
   ro.observe(palco);
 
   // ------------------------------------------------------------------
-  // rotação por scroll
+  // rotação por scroll — SEM pin
   //
-  // `scrub: 1` — não `true`. O segundo de inércia é o que faz parecer um
-  // objeto físico e não um valor ligado num slider.
+  // O pin saiu, e saiu por medida. Era `start: 'top top', end: '+=220%',
+  // pin: true` sobre `#anatomia`, que tem 1394px de altura. Numa janela de
+  // 900px isso deixava 494px da seção abaixo da dobra — e como o elemento
+  // ficava preso, esses 494px não eram alcançáveis rolando. Medido: o quarto
+  // rótulo ("Raiz") terminava 310px abaixo da borda, cortado no meio da
+  // frase, durante os 1980px de scroll em que a página não andava.
+  //
+  // Pinar conteúdo mais alto que a viewport é sempre isso: a página parece
+  // travada e o que sobra embaixo fica inacessível. A prancha inteira
+  // (figura + os quatro rótulos) tem 815px e cabe numa janela de 900px — o
+  // que não cabia era a seção com os 368px de respiro e o título junto.
+  // Sem o pin, a pessoa rola e a prancha se monta na tela inteira.
+  //
+  // A inércia que o `scrub: 1` dava não se perdeu: virou o `lerp` do laço
+  // de render, que já existia para o mobile.
   // ------------------------------------------------------------------
   const secao = document.querySelector<HTMLElement>('#anatomia')!;
   let progressoAlvo = 0;
   let progresso = 0;
-  let matarGatilho = () => {};
 
-  if (opcoes.desktop) {
-    // Pin com `scrub: 1` — não `true`. O segundo de inércia é o que faz
-    // parecer um objeto físico e não um valor ligado num slider.
-    const { ScrollTrigger } = await import('gsap/ScrollTrigger');
-    const { default: gsap } = await import('gsap');
-    gsap.registerPlugin(ScrollTrigger);
-    const st = ScrollTrigger.create({
-      trigger: secao,
-      start: 'top top',
-      end: '+=220%',
-      pin: true,
-      scrub: 1,
-      onUpdate: (self) => {
-        progressoAlvo = self.progress;
-        progresso = self.progress;
-      },
-    });
-    matarGatilho = () => st.kill();
-  } else {
-    // No mobile não há pin: a seção rola normal e o dente acompanha. Um
-    // ouvinte de scroll passivo custa menos que ScrollTrigger inteiro, e a
-    // inércia do `scrub` vira a interpolação do laço de render.
-    const medir = () => {
-      const r = secao.getBoundingClientRect();
-      const total = r.height + innerHeight;
-      progressoAlvo = Math.min(1, Math.max(0, (innerHeight - r.top) / total));
-    };
-    medir();
-    addEventListener('scroll', medir, { passive: true });
-    addEventListener('resize', medir, { passive: true });
-    matarGatilho = () => {
-      removeEventListener('scroll', medir);
-      removeEventListener('resize', medir);
-    };
-  }
+  /**
+   * Progresso medido a partir da PRANCHA, não da seção.
+   *
+   * A seção carrega 368px de respiro e o título; ancorar nela gastava metade
+   * do giro enquanto a figura ainda estava fora da tela. Ancorado na
+   * prancha, o meio do percurso (0.5) é exatamente o instante em que ela
+   * está centralizada — e é para lá que a pose de leitura foi calibrada.
+   *
+   * Lido dentro do laço de render, na fase de leitura, junto dos outros
+   * `getBoundingClientRect`. Assim não há ouvinte de scroll, e funciona
+   * igual com o Lenis, que move o scroll por conta própria.
+   */
+  const medirProgresso = () => {
+    const r = prancha.getBoundingClientRect();
+    const total = r.height + innerHeight;
+    if (total <= 0) return;
+    progressoAlvo = Math.min(1, Math.max(0, (innerHeight - r.top) / total));
+  };
+  medirProgresso();
+  progresso = progressoAlvo;
 
   // ------------------------------------------------------------------
   // arraste — soma à rotação do scroll e volta a zero ao soltar
@@ -535,16 +532,25 @@ export async function montarDente(opcoes: { desktop: boolean }): Promise<Cena | 
   });
   io.observe(document.querySelector('#anatomia')!);
 
-  // No desktop a seção é pinada e o giro de 1.6π acontece ao longo de 220%
-  // de scroll — há espaço para dar a volta. No mobile a seção rola normal e
-  // o mesmo giro passaria quase todo o tempo mostrando o dente de costas,
-  // com os rótulos apontando para faces que a pessoa não vê.
-  const amplitude = opcoes.desktop ? 1.6 : 0.55;
+  // O giro é CENTRADO: `(progresso - 0.5)`, não `progresso`. Saindo de 0
+  // e indo até 1.6π, o dente passava por 144° bem no instante em que a
+  // prancha ficava centralizada — de costas exatamente na hora de ler, com
+  // os quatro pontos apontando para faces invisíveis. Centrado, a pose
+  // frontal cai no meio do percurso, que é quando a pessoa lê, e o giro
+  // acontece na entrada e na saída.
+  //
+  // Amplitude 1.0 no desktop = ±90° nos extremos, ±27° na janela de leitura.
+  // No mobile a figura é menor e a janela de leitura mais curta: 0.7.
+  const amplitude = opcoes.desktop ? 1.0 : 0.7;
 
   let quadro = 0;
   const desenhar = () => {
     quadro = requestAnimationFrame(desenhar);
     if (!visivel) return;
+
+    // Fase de leitura: primeiro o que consulta layout, depois o que escreve.
+    // `posicionarSobreposicao` fecha o frame escrevendo.
+    medirProgresso();
 
     // Todas as suavizações do arquivo moram aqui. É o que substitui as
     // tweens do GSAP: um alvo, e o valor caminhando até ele a cada frame.
@@ -564,9 +570,11 @@ export async function montarDente(opcoes: { desktop: boolean }): Promise<Cena | 
       mat.opacity = lerp(mat.opacity, opacidadeAlvo.get(nome) ?? 1, 0.12);
     });
 
-    grupo.rotation.y = progresso * Math.PI * amplitude + manual.y + olhar.y;
+    grupo.rotation.y = (progresso - 0.5) * Math.PI * amplitude + manual.y + olhar.y;
     grupo.rotation.x = Math.sin(progresso * Math.PI) * 0.18 + manual.x + olhar.x;
-    camera.position.z = 3.4 - progresso * 0.9;
+    // Aproxima no meio do percurso e recua nas pontas, em vez de aproximar
+    // sempre: o dente chega mais perto justamente quando está sendo lido.
+    camera.position.z = 3.4 - Math.sin(progresso * Math.PI) * 0.6;
     grupo.updateMatrixWorld();
     renderer.render(cena, camera);
     posicionarSobreposicao();
@@ -590,7 +598,6 @@ export async function montarDente(opcoes: { desktop: boolean }): Promise<Cena | 
       io.disconnect();
       ro.disconnect();
       obsCascata.disconnect();
-      matarGatilho();
       canvas.removeEventListener('pointerdown', comecar);
       canvas.removeEventListener('pointermove', mover);
       canvas.removeEventListener('pointerup', soltar);
