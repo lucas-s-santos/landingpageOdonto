@@ -1,6 +1,22 @@
 ---
 import '../styles/tokens.css';
-import { CLINICA, DIA_SCHEMA, EH_DEMO, EXPEDIENTE, PERGUNTAS } from '../data/conteudo';
+import { CANAIS, CANAL_PADRAO, CLINICA, DIA_SCHEMA, EH_DEMO, EXPEDIENTE, PERGUNTAS } from '../data/conteudo';
+import { MEDICAO } from '../data/medicao';
+
+/**
+ * FASE A do PLANO-CLINICA.md — o relatório de canal.
+ *
+ * Nasce desligado. Com `provedor: 'nenhum'` nada abaixo é renderizado: nem
+ * o script do provedor, nem o módulo de medição, nem o elemento com as
+ * chaves. Zero requisição de terceiro e zero byte, que é o que mantém o
+ * Lighthouse em 98 enquanto a ferramenta não for escolhida.
+ *
+ * Só as CHAVES vão para o HTML (`ig`, `google`, `cartao`), não os textos.
+ * O módulo de medição não precisa da copy, e mandar a copy junto seria
+ * arrastar `conteudo.ts` inteiro para o bundle do cliente.
+ */
+const medindo = MEDICAO.provedor !== 'nenhum';
+const chavesDeCanal = Object.keys(CANAIS);
 
 interface Props {
   titulo: string;
@@ -162,14 +178,59 @@ const faqLd = faq && PERGUNTAS.length
       )
     }
 
+    {
+      medindo && MEDICAO.provedor === 'plausible' && (
+        <script is:inline defer data-domain={MEDICAO.dominio} src="https://plausible.io/js/script.js" />
+      )
+    }
+
+    {
+      medindo && MEDICAO.provedor === 'umami' && (
+        <script is:inline defer src={MEDICAO.umamiScript} data-website-id={MEDICAO.umamiSite} />
+      )
+    }
+
     <slot name="head" />
   </head>
 
   <body>
     <a href="#conteudo" class="pular-para-conteudo">Pular para o conteúdo</a>
     <slot />
+
+    {
+      medindo && (
+        <div
+          hidden
+          data-medicao
+          data-canais={JSON.stringify(chavesDeCanal)}
+          data-canal-padrao={CANAL_PADRAO}
+        />
+      )
+    }
   </body>
 </html>
+
+{/*
+  O módulo de medição.
+
+  Com o provedor desligado este bloco não é renderizado e o HTML não contém
+  UMA REFERÊNCIA sequer a ele — conferido no build: zero ocorrências de
+  `medicao`, `plausible` ou `umami` em dist/index.html. O visitante não
+  baixa nada, que é o que preserva o Lighthouse.
+
+  O que NÃO acontece, e vale saber: o Astro coleta os `<script>` de
+  componente estaticamente, então o chunk `medicao.*.js` é emitido em
+  dist/_astro/ mesmo desligado. Fica lá órfão, sem ninguém apontando para
+  ele. São ~2 KB parados no deploy, nunca requisitados. Não vale
+  complicar o build para eliminá-los.
+*/}
+{
+  medindo && (
+    <script>
+      import('../scripts/medicao');
+    </script>
+  )
+}
 
 <style>
   /* Fica fora da tela até receber foco. Primeira parada do Tab na página. */

@@ -313,6 +313,7 @@ npm run conformidade   # só a varredura legal
 npm run a11y           # teclado, foco, títulos, JSON-LD
 npm run motion         # checagem final do MOTION.md
 npm run dente          # a cena 3D
+npm run medicao        # os eventos de canal, e o que nunca pode ser enviado
 npm run lighthouse     # performance, perfil mobile
 npm run shot           # screenshots em 1440 e 390
 npx astro check        # tipos
@@ -543,6 +544,47 @@ CFO-196:                    aprovado nas 2 páginas
                             em 360px
 dente:                      os 14 testes passam, 4 fios, nenhum sobre texto
 ```
+
+---
+
+## Parte 4C — Sessao de 08/09/2026: o lado da clinica
+
+`PLANO-CLINICA.md` responde "o sistema tem backend?". Resposta: nao, e o
+arquivo diz o que seria preciso para ter, em que ordem, e o custo de cada
+peca. Leia ele antes de prometer qualquer coisa de backend a cliente.
+
+Dois pontos que valem repetir aqui:
+
+- **A confirmacao automatica nao e independente.** Ela precisa saber que
+  existe uma consulta as 14h de quinta. Sem agenda consultavel — nossa ou da
+  clinica — nao ha o que confirmar. Vem depois da agenda, sempre.
+- **O painel de contatos muda a natureza do projeto.** Hoje a CalmDev nao
+  toca em dado nenhum. Com banco, `Nome: Ana Paula. Motivo: estou com dor.`
+  e dado pessoal sensivel (LGPD art. 5o, II): a clinica vira controladora, a
+  CalmDev vira operadora, e isso pede contrato, base legal e politica de
+  retencao.
+
+### Fase A construida, desligada
+
+Instrumentacao do relatorio de canal. Nao ha backend nisso: sao tres eventos
+mandados a uma ferramenta de analytics sem cookie.
+
+```
+src/data/medicao.ts       configuracao. provedor: 'nenhum' hoje
+src/scripts/medicao.ts    os eventos: visita, contato, preparo
+scripts/medicao-check.mjs npm run medicao, ja dentro de npm run verificar
+```
+
+**Para ligar:** escolha Plausible (hospedado, mensalidade) ou Umami
+(auto-hospedado, servidor seu), preencha `src/data/medicao.ts` e rode
+`npm run lighthouse` antes e depois. Se cair abaixo de 90, o script sai.
+
+**Desligada nao custa nada:** `dist/index.html` nao tem uma referencia a
+`medicao`, `plausible` ou `umami`. Lighthouse segue em 98.
+
+**O teste existe para impedir uma coisa so:** que nome ou motivo vazem para
+o analytics. Ele preenche o formulario, clica no botao e confere que so a
+chave do canal saiu.
 
 ---
 
