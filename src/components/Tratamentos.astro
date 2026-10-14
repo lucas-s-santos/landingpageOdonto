@@ -1,5 +1,7 @@
 ---
+import { Picture } from 'astro:assets';
 import { TRATAMENTOS } from '../data/conteudo';
+import { imagemFlow } from '../data/imagens';
 ---
 
 {/*
@@ -32,7 +34,29 @@ import { TRATAMENTOS } from '../data/conteudo';
             <span class="item__sinal" aria-hidden="true" />
           </summary>
           <div class="item__corpo">
-            <p class="max-w-corpo">{t.texto}</p>
+            {/*
+              A seção 5 do BRIEF pede "expande revelando texto e imagem", e
+              até o lote 2 de imagens expandia só texto. São material e
+              modelo didático — sem boca, sem procedimento, sem antes e
+              depois (CFO-196).
+
+              `loading="lazy"` dentro de um <details> fechado não baixa
+              nada: conteúdo fechado não é renderizado. A imagem só chega
+              quando a pessoa abre o item. A altura já fica reservada pelo
+              width/height que o <Picture> escreve, então a animação do
+              accordion mede o tamanho certo antes de a imagem carregar.
+            */}
+            <Picture
+              class="item__imagem"
+              src={imagemFlow(t.imagem)}
+              alt={t.alt}
+              widths={[400, 640, 960, 1200]}
+              sizes="(min-width: 768px) 30vw, calc(100vw - 40px)"
+              formats={['avif', 'webp']}
+              loading="lazy"
+              decoding="async"
+            />
+            <p class="item__texto max-w-corpo">{t.texto}</p>
           </div>
         </details>
       ))
@@ -116,6 +140,28 @@ import { TRATAMENTOS } from '../data/conteudo';
   }
 
   .item__corpo {
+    display: grid;
+    gap: 1.25rem;
     padding-bottom: 1.6rem;
+  }
+
+  .item__corpo :global(.item__imagem) {
+    width: 100%;
+    max-width: 30rem;
+    height: auto;
+    aspect-ratio: 3 / 2;
+    object-fit: cover;
+  }
+
+  /* No desktop a imagem fica à esquerda e o texto ao lado, os dois
+     começando na mesma linha. Lado a lado a expansão cresce menos, e o
+     parágrafo não desce para baixo da dobra quando o item abre. */
+  @media (min-width: 768px) {
+    .item__corpo {
+      grid-template-columns: minmax(0, 4fr) minmax(0, 7fr);
+      column-gap: var(--spacing-gutter);
+      align-items: start;
+      padding-top: 0.25rem;
+    }
   }
 </style>

@@ -29,7 +29,7 @@ const MIME = {
   '.js': 'text/javascript',
   '.woff2': 'font/woff2',
   '.jpg': 'image/jpeg',
-  '.webp': 'image/webp',
+  '.webp': 'image/webp', '.avif': 'image/avif',
   '.png': 'image/png',
   '.svg': 'image/svg+xml',
   '.mp4': 'video/mp4',
@@ -102,9 +102,11 @@ for (const { nome, width, height } of LARGURAS) {
       await new Promise((r) => setTimeout(r, 90));
     }
     window.scrollTo(0, 0);
+    // Imagem dentro de <details> fechado (os tratamentos) não carrega até a
+    // pessoa abrir o item, de propósito. Esperar por ela travava o script.
     await Promise.all(
       [...document.querySelectorAll('img')]
-        .filter((img) => !img.complete)
+        .filter((img) => !img.complete && !img.closest('details:not([open])'))
         .map((img) => new Promise((r) => img.addEventListener('load', r, { once: true })))
     );
   });
@@ -120,9 +122,25 @@ for (const { nome, width, height } of LARGURAS) {
   //
   // A captura mostra o estado final. Quem prova que a animação ACONTECE é
   // `npm run motion`, que mede o deslocamento quadro a quadro.
+  //
+  // As animações PRESAS À ROLAGEM (MOTION.md §11) ficam de fora da espera:
+  // elas não terminam nunca, só acompanham o scroll, e esperar por elas
+  // travava o script para sempre. E são canceladas para a foto: numa
+  // captura de página inteira tudo abaixo da dobra ficaria congelado no
+  // estado de "antes" — a faixa de esmalte como uma fenda, o fio da
+  // consulta sem desenhar. Cancelada, cada uma mostra a página parada e
+  // completa, a mesma que o reduced-motion mostra.
   await pagina.evaluate(async () => {
     for (const el of document.querySelectorAll('.revela')) el.classList.add('revelado');
-    await Promise.all(document.getAnimations().map((a) => a.finished.catch(() => {})));
+    const todas = document.getAnimations();
+    const porRolagem = todas.filter((a) => a.timeline && a.timeline !== document.timeline);
+    for (const a of porRolagem) a.cancel();
+    // Parado, o relógio da consulta diria "0 min" — um número sem sentido
+    // numa foto. Sem movimento ele nem existe na página; aqui também não.
+    for (const r of document.querySelectorAll('.relogio')) r.style.display = 'none';
+    await Promise.all(
+      todas.filter((a) => !porRolagem.includes(a)).map((a) => a.finished.catch(() => {}))
+    );
   });
 
   // O cursor customizado segue o mouse, e um screenshot não tem mouse: ele

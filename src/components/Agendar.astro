@@ -128,6 +128,8 @@ const href = linkWhatsApp(mensagemBase);
 </section>
 
 <script>
+  import { estadoAgora, lerFaixas } from '../scripts/expediente';
+
   /**
    * Enriquece o link do WhatsApp com o que a pessoa escolheu.
    *
@@ -201,87 +203,27 @@ const href = linkWhatsApp(mensagemBase);
      ninguém respondia, e concluía que a clínica não responde. O que faz
      desistir é a expectativa quebrada, não o horário em si.
 
-     A linha diz quando a clínica abre. Não promete prazo de resposta —
-     isso não depende do site, e prometer o que não se controla é como se
-     perde a confiança que a página inteira existe para construir.
-
-     FUSO DA CLÍNICA, não do aparelho. Date.getHours() devolve a hora de
-     quem visita: brasileiro no exterior procurando dentista para a volta
-     leria "aberta agora" às 3h da manhã de Alfenas.
+     A conta mora em src/scripts/expediente.ts, junto com a da abertura,
+     que diz a mesma coisa embaixo do primeiro botão. Uma conta só: as duas
+     linhas não têm como discordar.
      ================================================================== */
   const linha = document.querySelector<HTMLElement>('.expediente');
 
   if (linha) {
-    type Faixa = { dias: number[]; abre: string; fecha: string };
-
-    let faixas: Faixa[] = [];
-    try {
-      faixas = JSON.parse(linha.dataset.expediente ?? '[]');
-    } catch {
-      faixas = [];
-    }
-
+    const faixas = lerFaixas(linha);
     const fuso = linha.dataset.fuso || 'America/Sao_Paulo';
-    const DIAS = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
-
-    const paraHora = (hhmm: string) => {
-      const [h, m] = hhmm.split(':');
-      return m === '00' ? `${Number(h)}h` : `${Number(h)}h${m}`;
-    };
-
-    const emMinutos = (hhmm: string) => {
-      const [h, m] = hhmm.split(':');
-      return Number(h) * 60 + Number(m);
-    };
-
-    /** Dia da semana e minutos desde a meia-noite, no fuso da clínica. */
-    const agoraNaClinica = () => {
-      const partes = new Intl.DateTimeFormat('en-US', {
-        timeZone: fuso,
-        weekday: 'short',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-      }).formatToParts(new Date());
-      const achar = (t: string) => partes.find((p) => p.type === t)?.value ?? '';
-      const semana = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-      // hourCycle h23 devolve '24' à meia-noite em alguns motores.
-      const h = Number(achar('hour')) % 24;
-      return { dia: semana.indexOf(achar('weekday')), minutos: h * 60 + Number(achar('minute')) };
-    };
-
-    const faixaDoDia = (dia: number) => faixas.find((f) => f.dias.includes(dia));
-
-    const proximaAbertura = (dia: number, minutos: number) => {
-      const hoje = faixaDoDia(dia);
-      if (hoje && minutos < emMinutos(hoje.abre)) return { quando: 'hoje', faixa: hoje };
-      for (let i = 1; i <= 7; i++) {
-        const d = (dia + i) % 7;
-        const f = faixaDoDia(d);
-        if (f) return { quando: i === 1 ? 'amanhã' : `na ${DIAS[d]}`, faixa: f };
-      }
-      return null;
-    };
 
     const escrever = () => {
-      if (!faixas.length) return; // modo cliente, horário ainda [PREENCHER]
+      const estado = estadoAgora(faixas, fuso);
+      if (!estado) return;
 
-      const { dia, minutos } = agoraNaClinica();
-      if (dia < 0) return; // fuso desconhecido: melhor calar do que errar
-
-      const hoje = faixaDoDia(dia);
-      const aberta = hoje && minutos >= emMinutos(hoje.abre) && minutos < emMinutos(hoje.fecha);
-
-      if (aberta) {
-        linha.textContent = `A clínica está aberta agora, até as ${paraHora(hoje.fecha)}.`;
+      if (estado.aberta) {
+        linha.textContent = `A clínica está aberta agora, até as ${estado.fecha}.`;
         linha.dataset.estado = 'aberta';
       } else {
-        const proxima = proximaAbertura(dia, minutos);
-        if (!proxima) return;
         linha.textContent =
-          `A clínica está fechada agora, abre ${proxima.quando} às ` +
-          `${paraHora(proxima.faixa.abre)}. Se mandar a mensagem, ela fica ` +
-          'no WhatsApp esperando.';
+          `A clínica está fechada agora, abre ${estado.quando} às ${estado.abre}. ` +
+          'Se mandar a mensagem, ela fica no WhatsApp esperando.';
         linha.dataset.estado = 'fechada';
       }
       linha.hidden = false;

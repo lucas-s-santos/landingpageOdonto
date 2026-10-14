@@ -15,7 +15,7 @@ import { join, extname, resolve, sep } from 'node:path';
 const RAIZ = resolve('dist');
 const PORTA = 4503;
 const MIME = { '.html':'text/html; charset=utf-8','.css':'text/css','.js':'text/javascript',
-  '.woff2':'font/woff2','.jpg':'image/jpeg','.webp':'image/webp','.png':'image/png',
+  '.woff2':'font/woff2','.jpg':'image/jpeg','.webp':'image/webp','.avif':'image/avif','.png':'image/png',
   '.mp4':'video/mp4','.webm':'video/webm','.glb':'model/gltf-binary','.wasm':'application/wasm' };
 const servidor = createServer(async (req, res) => {
   try {
@@ -59,6 +59,12 @@ await pg.waitForTimeout(1200);
 
 diz(!pedidos.some((u) => u.startsWith('three')), 'Three.js NÃO é baixado no carregamento inicial');
 diz(!pedidos.some((u) => u.endsWith('.glb')), 'o modelo NÃO é baixado no carregamento inicial');
+
+// Sem o 3D, marcador e botão que não fazem nada não podem aparecer.
+diz(await pg.evaluate(() =>
+  [...document.querySelectorAll('[data-hotspot]')].every((h) => h.hidden) &&
+  document.querySelector('[data-controles]')?.hidden === true),
+  'antes do 3D, os marcadores e os botões "Ver por dentro" estão escondidos');
 
 // aproxima da seção
 await pg.evaluate(() => document.querySelector('#anatomia').scrollIntoView({ block: 'center' }));
@@ -136,12 +142,51 @@ if (pronto) {
   const op = await pg.evaluate(() =>
     getComputedStyle(document.querySelector('[data-parte="esmalte"]')).opacity);
   diz(recuou, `as outras partes recuam (opacity ${op})`);
-  // teclado
-  await pg.locator('[data-hotspot="colo"]').focus();
+  // VER POR DENTRO — os controles de verdade, por teclado. Os marcadores
+  // sobre o modelo são atalho de ponteiro (fora do Tab, aria-hidden).
+  diz(await pg.evaluate(() => !document.querySelector('[data-controles]').hidden),
+    'com o 3D montado, a fileira "Ver por dentro" aparece');
+  const legendaAntes = await pg.evaluate(() => document.querySelector('[data-estado-corte]').textContent.trim());
+  await pg.locator('[data-ver="colo"]').focus();
   await pg.keyboard.press('Enter');
   await pg.waitForTimeout(900);
-  diz(await pg.evaluate(() => document.querySelector('[data-hotspot="colo"]')?.getAttribute('aria-pressed')) === 'true',
-    'o hotspot também responde ao teclado');
+  const porDentro = await pg.evaluate(() => ({
+    botao: document.querySelector('[data-ver="colo"]').getAttribute('aria-pressed'),
+    inteiro: document.querySelector('[data-ver=""]').getAttribute('aria-pressed'),
+    marcador: document.querySelector('[data-hotspot="colo"]').getAttribute('aria-pressed'),
+    legenda: document.querySelector('[data-estado-corte]').textContent.trim(),
+  }));
+  diz(porDentro.botao === 'true' && porDentro.inteiro === 'false' && porDentro.marcador === 'true',
+    '"Colo do dente" pelo teclado: o botão e o marcador ficam pressionados');
+  diz(porDentro.legenda !== legendaAntes && porDentro.legenda.startsWith('Em corte'),
+    `a legenda diz o que está aceso: "${porDentro.legenda.slice(0, 48)}..."`);
+  await pg.locator('[data-ver=""]').click();
+  await pg.waitForTimeout(700);
+  diz(await pg.evaluate(() => !document.querySelector('[data-prancha]').hasAttribute('data-ativa') &&
+    !document.querySelector('[data-estado-corte]').textContent.trim().startsWith('Em corte') &&
+    document.querySelector('[data-ver=""]').getAttribute('aria-pressed') === 'true'),
+    '"Inteiro" fecha o corte e a legenda volta ao convite');
+
+  // TOCAR NO DENTE. Um toque curto no próprio modelo escolhe a parte que
+  // está embaixo do dedo — aqui, em cima da coroa, perto do marcador do
+  // esmalte (mas fora dele, para o clique não cair no botão).
+  const toque = await pg.evaluate(async () => {
+    const canvas = document.querySelector('[data-canvas]');
+    const m = document.querySelector('[data-hotspot="esmalte"]').getBoundingClientRect();
+    const x = m.left + m.width / 2 - 4;
+    const y = m.top + m.height / 2 + 26;
+    const base = { bubbles: true, clientX: x, clientY: y, pointerId: 7, pointerType: 'mouse', isPrimary: true };
+    canvas.dispatchEvent(new PointerEvent('pointerdown', base));
+    canvas.dispatchEvent(new PointerEvent('pointerup', base));
+    await new Promise((r) => setTimeout(r, 600));
+    return document.querySelector('[data-prancha]').hasAttribute('data-ativa')
+      ? document.querySelector('[data-hotspot][aria-pressed="true"]')?.dataset.hotspot
+      : null;
+  });
+  diz(toque === 'esmalte' || toque === 'dentina',
+    `tocar na coroa escolhe uma parte da coroa (${toque})`);
+  await pg.locator('[data-ver=""]').click();
+  await pg.waitForTimeout(1600);
 
   // --- os fios nunca podem passar por cima do texto ---------------
   //
@@ -189,6 +234,29 @@ if (pronto) {
   await pg.waitForTimeout(600);
 
   // o cursor customizado segue o mouse e ficaria congelado na captura
+  // PARADO, NÃO DESENHA. O laço só renderiza quando algo se move; com a
+  // cena quieta, a placa de vídeo descansa. Conta as chamadas de desenho do
+  // WebGL até achar uma janela de 1,5s sem nenhuma (no máximo 25s — o WebGL
+  // por software deste teste anda a poucos quadros por segundo).
+  const parado = await pg.evaluate(async () => {
+    const gl = document.querySelector('[data-canvas]').getContext('webgl2');
+    if (!gl) return -1;
+    let n = 0;
+    const original = gl.drawElements.bind(gl);
+    gl.drawElements = (...a) => {
+      n++;
+      return original(...a);
+    };
+    const inicio = performance.now();
+    while (performance.now() - inicio < 25000) {
+      n = 0;
+      await new Promise((r) => setTimeout(r, 1500));
+      if (n === 0) return 0;
+    }
+    return n;
+  });
+  diz(parado === 0, `com a cena parada, nenhum quadro é desenhado (${parado} chamadas na última janela)`);
+
   await pg.evaluate(() => document.querySelector('.cursor')?.remove());
   await pg.screenshot({ path: 'screenshots/_dente.png', clip: await pg.locator('[data-palco]').boundingBox() });
   console.log('  captura da prancha em screenshots/_dente.png');

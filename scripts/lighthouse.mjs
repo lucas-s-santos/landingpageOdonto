@@ -22,7 +22,7 @@ const RAIZ = resolve('dist');
 const PORTA = 4504;
 const MIME = {
   '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 'text/javascript',
-  '.woff2': 'font/woff2', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.png': 'image/png',
+  '.woff2': 'font/woff2', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.avif': 'image/avif', '.png': 'image/png',
   '.svg': 'image/svg+xml', '.mp4': 'video/mp4', '.webm': 'video/webm',
   '.glb': 'model/gltf-binary', '.wasm': 'application/wasm', '.json': 'application/json',
 };

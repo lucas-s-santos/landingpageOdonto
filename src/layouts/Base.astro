@@ -1,6 +1,6 @@
 ---
 import '../styles/tokens.css';
-import { CLINICA, DIA_SCHEMA, EH_DEMO, EXPEDIENTE, PERGUNTAS } from '../data/conteudo';
+import { ABERTURA, CLINICA, DIA_SCHEMA, EH_DEMO, EXPEDIENTE, PERGUNTAS } from '../data/conteudo';
 
 interface Props {
   titulo: string;
@@ -133,11 +133,30 @@ const faqLd = faq && PERGUNTAS.length
       crossorigin
     />
 
+    {/* Gerados por `npm run og` a partir do conteudo.ts. */}
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
     <meta property="og:type" content="website" />
     <meta property="og:title" content={titulo} />
     <meta property="og:description" content={descricao} />
     <meta property="og:url" content={canonical} />
     <meta property="og:locale" content="pt_BR" />
+
+    {/*
+      A prévia do link. É assim que a página chega a quem ainda não entrou
+      nela: colada pela recepção no WhatsApp, na bio do Instagram, no status.
+      Sem `og:image` o link chegava como um retângulo cinza. URL absoluta
+      porque o WhatsApp não resolve caminho relativo.
+    */}
+    <meta property="og:image" content={new URL('/og.jpg', Astro.site)} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content={`${CLINICA.nome}. ${ABERTURA.titulo}`}
+    />
+    <meta name="twitter:card" content="summary_large_image" />
 
     {/*
       `JSON.stringify` não escapa `</script>`. Se algum campo de CLINICA

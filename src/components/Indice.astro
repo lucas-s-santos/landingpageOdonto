@@ -1,0 +1,477 @@
+---
+import { CTA, EH_DEMO, INDICE } from '../data/conteudo';
+import { ASSINATURA } from '../data/marca';
+
+interface Props {
+  /**
+   * Onde moram as âncoras. Na home, a própria página (`''`); em
+   * /primeira-consulta, a home (`'/'`) — lá as seções não existem, e o
+   * link precisa levar até elas.
+   */
+  base?: string;
+}
+
+const { base = '' } = Astro.props;
+const naHome = base === '';
+---
+
+{/*
+  O MENU — a lista de dúvidas de quem visita, não a lista de seções.
+
+  Menu de clínica diz "Sobre · Serviços · Equipe · Contato", o nome que a
+  clínica dá às próprias partes. Esta página está na ordem das objeções de
+  quem visita (BRIEF seção 4), então o menu lista as perguntas, na voz de
+  quem pergunta, e cada uma leva à parte que responde. O fio que liga a
+  pergunta ao lugar é o fio da prancha anatômica.
+
+  Abre como uma folha que entra pela esquerda, por cima da página. É
+  movimento por ação da pessoa: só acontece porque ela clicou.
+
+  <dialog> com showModal(): o navegador cuida do foco preso, do Esc, da
+  camada de cima e de devolver o foco ao botão ao fechar. Sem JavaScript o
+  botão nem aparece — e a página inteira continua navegável rolando, como
+  sempre foi.
+*/}
+<button class="indice-botao" type="button" aria-haspopup="dialog" aria-controls="indice" data-abre-indice hidden>
+  <span class="indice-botao__marca" aria-hidden="true"></span>
+  {INDICE.titulo}
+</button>
+
+<dialog id="indice" class="indice sobre-escuro" aria-labelledby="indice-titulo" data-lenis-prevent>
+  <div class="indice__folha">
+    <div class="indice__topo">
+      {/* A mesma marca do cabeçalho, em osso: a folha é a mesma página. */}
+      {EH_DEMO && <span class="indice__marca" aria-hidden="true" set:html={ASSINATURA} />}
+      <button class="indice__fechar" type="button" data-fecha-indice>Fechar</button>
+    </div>
+
+    <div>
+      <h2 id="indice-titulo" class="indice__titulo">{INDICE.titulo}</h2>
+      <p class="indice__intro">{INDICE.intro}</p>
+    </div>
+
+    <ol class="indice__lista">
+      {
+        INDICE.itens.map((item, i) => (
+          <li class="indice__item" style={`--i: ${i};`}>
+            <a class="indice__ligacao" href={`${base}#${item.ancora}`} data-ancora={naHome ? item.ancora : undefined}>
+              <span class="indice__pergunta">{item.pergunta}</span>
+              <span class="indice__caminho">
+                <span class="indice__ponto" aria-hidden="true" />
+                <span class="indice__fio" aria-hidden="true" />
+                <span class="indice__onde">{item.onde}</span>
+              </span>
+            </a>
+          </li>
+        ))
+      }
+    </ol>
+
+    {/* O mesmo CTA de sempre: mesmo verbo, mesma função. Não é um
+        segundo caminho — é o único, repetido onde a decisão acontece. */}
+    <p class="indice__agendar">
+      <a href={`${base}#agendar`} class="cta cta--claro" data-ancora={naHome ? 'agendar' : undefined}>{CTA}</a>
+    </p>
+  </div>
+</dialog>
+
+<script>
+  const dialogo = document.querySelector<HTMLDialogElement>('#indice');
+  const abrir = document.querySelector<HTMLButtonElement>('[data-abre-indice]');
+
+  if (dialogo && abrir && typeof dialogo.showModal === 'function') {
+    abrir.hidden = false;
+    const raiz = document.documentElement;
+
+    /** A seção que cruza o meio da tela é a que a pessoa está lendo. */
+    const marcarAtual = () => {
+      const meio = innerHeight / 2;
+      for (const a of dialogo.querySelectorAll<HTMLAnchorElement>('[data-ancora]')) {
+        const secao = document.getElementById(a.dataset.ancora ?? '')?.closest('section, footer');
+        const r = secao?.getBoundingClientRect();
+        if (r && r.top <= meio && r.bottom > meio) a.setAttribute('aria-current', 'location');
+        else a.removeAttribute('aria-current');
+      }
+    };
+
+    abrir.addEventListener('click', () => {
+      marcarAtual();
+      dialogo.showModal();
+      abrir.setAttribute('aria-expanded', 'true');
+      raiz.classList.add('indice-aberto');
+      window.__lenis?.stop();
+    });
+
+    dialogo.addEventListener('close', () => {
+      abrir.setAttribute('aria-expanded', 'false');
+      raiz.classList.remove('indice-aberto');
+      window.__lenis?.start();
+    });
+
+    dialogo.querySelector('[data-fecha-indice]')?.addEventListener('click', () => dialogo.close());
+
+    // Clique fora da folha fecha. A folha ocupa a caixa inteira do <dialog>,
+    // então um clique cujo alvo é o próprio <dialog> só pode ter vindo do
+    // fundo escurecido.
+    dialogo.addEventListener('click', (e) => {
+      if (e.target === dialogo) dialogo.close();
+    });
+
+    // Link para uma seção desta página: fecha, rola até ela e leva o foco
+    // para o título — quem navega por teclado continua a partir dali, e não
+    // do topo da página.
+    for (const a of dialogo.querySelectorAll<HTMLAnchorElement>('[data-ancora]')) {
+      a.addEventListener('click', (e) => {
+        const alvo = document.getElementById(a.dataset.ancora ?? '');
+        if (!alvo) return;
+        e.preventDefault();
+        dialogo.close();
+        // O evento `close` chega depois, numa tarefa à parte — e até lá o
+        // Lenis segue parado e a página travada, e o scrollTo abaixo seria
+        // ignorado. Destrava aqui, na hora. Medido: no desktop a página
+        // simplesmente não rolava.
+        raiz.classList.remove('indice-aberto');
+        window.__lenis?.start();
+        history.replaceState(null, '', `#${alvo.id}`);
+        if (!alvo.hasAttribute('tabindex')) alvo.setAttribute('tabindex', '-1');
+        // Mira no PAI do título, não no título: antes de revelado ele está
+        // deslocado 0,22em para baixo pela máscara, e subia depois de a
+        // rolagem já ter parado — no celular o título terminava 7px acima
+        // da borda, cortado.
+        // Só vale para título: a âncora do CTA (#agendar) é a própria seção,
+        // e mirar no pai dela levava a página para o topo do <main>.
+        const destino = alvo.matches('h1, h2, h3') ? (alvo.parentElement ?? alvo) : alvo;
+        if (window.__lenis) window.__lenis.scrollTo(destino, { offset: -24 });
+        else scrollTo({ top: destino.getBoundingClientRect().top + scrollY - 24 });
+        alvo.focus({ preventScroll: true });
+      });
+    }
+  }
+</script>
+
+<style>
+  /* --- o botão ----------------------------------------------------------
+     Texto, não ícone de três tracinhos. A marca na frente é o ponto e o fio
+     da prancha: o mesmo gesto do rótulo, do favicon e da marca. */
+  .indice-botao {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-height: 44px;
+    padding: 0 0.25rem;
+    background: none;
+    border: 0;
+    color: var(--color-tinta);
+    font: inherit;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  .indice-botao[hidden] {
+    display: none;
+  }
+
+  .indice-botao__marca {
+    position: relative;
+    width: 1.35rem;
+    height: 7px;
+  }
+
+  .indice-botao__marca::before,
+  .indice-botao__marca::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    background: currentColor;
+  }
+
+  .indice-botao__marca::before {
+    left: 0;
+    width: 7px;
+    height: 7px;
+    margin-top: -3.5px;
+    border-radius: 50%;
+  }
+
+  .indice-botao__marca::after {
+    left: 6px;
+    right: 0;
+    height: 1px;
+    transform-origin: 0 50%;
+    transition: transform var(--tempo-hover) var(--ease-saida);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .indice-botao:hover .indice-botao__marca::after {
+      transform: scaleX(1.6);
+    }
+  }
+
+  /* --- a folha ------------------------------------------------------------ */
+  .indice {
+    /* <dialog> modal: o navegador o põe na camada de cima. A caixa vira a
+       folha inteira, presa à esquerda, da altura da janela. */
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: min(100vw, 40rem);
+    max-width: 100vw;
+    height: 100dvh;
+    max-height: 100dvh;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: var(--color-eucalipto);
+    color: var(--color-osso);
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+
+  /* A folha é eucalipto: a barra de rolagem dela inverte, fio e traço em
+     osso — a mesma barra da página, do avesso. */
+  .indice::-webkit-scrollbar-track {
+    background:
+      linear-gradient(
+        to right,
+        transparent calc(50% - 0.5px),
+        color-mix(in srgb, var(--color-osso) 40%, transparent) calc(50% - 0.5px),
+        color-mix(in srgb, var(--color-osso) 40%, transparent) calc(50% + 0.5px),
+        transparent calc(50% + 0.5px)
+      ),
+      var(--color-eucalipto);
+  }
+
+  .indice::-webkit-scrollbar-thumb {
+    background-color: var(--color-osso);
+  }
+
+  .indice::backdrop {
+    background: color-mix(in srgb, var(--color-tinta) 55%, transparent);
+  }
+
+  .indice__folha {
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+    padding: clamp(1.25rem, 4vw, 2.5rem) var(--spacing-margem) 2.5rem;
+  }
+
+  @media (min-width: 900px) {
+    .indice__folha {
+      padding-inline: clamp(2rem, 4vw, 3.5rem);
+    }
+  }
+
+  .indice__topo {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: -1rem;
+  }
+
+  .indice__marca {
+    color: var(--color-osso);
+  }
+
+  .indice__marca :global(svg) {
+    display: block;
+    height: 1.3rem;
+    width: auto;
+  }
+
+  .indice__titulo {
+    margin: 0;
+    font-size: var(--text-tratamento);
+    line-height: 1.25;
+  }
+
+  .indice__intro {
+    margin: 0.35rem 0 0;
+    font-size: var(--text-rotulo);
+    color: var(--color-osso-suave);
+  }
+
+  .indice__fechar {
+    flex: none;
+    min-height: 44px;
+    padding: 0 0.25rem;
+    background: none;
+    border: 0;
+    color: var(--color-osso);
+    font: inherit;
+    font-weight: 500;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    text-decoration-color: color-mix(in srgb, var(--color-osso) 45%, transparent);
+    cursor: pointer;
+  }
+
+  .indice__lista {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: clamp(1.1rem, 2.4vh, 1.75rem);
+  }
+
+  .indice__ligacao {
+    display: grid;
+    gap: 0.55rem;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .indice__pergunta {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: clamp(1.45rem, 2.4vw, 2.1rem);
+    line-height: 1.08;
+    letter-spacing: -0.015em;
+    transition: transform var(--tempo-hover) var(--ease-saida);
+  }
+
+  /* O caminho: ponto, fio e o nome da parte que responde. Em repouso o fio
+     é curto; no hover e no foco ele corre até o nome, como o fio da
+     prancha corre até o rótulo. */
+  .indice__caminho {
+    display: flex;
+    align-items: center;
+    gap: 0;
+  }
+
+  .indice__ponto {
+    flex: none;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    border: 1px solid var(--color-osso);
+    transition: background-color var(--tempo-hover) var(--ease-saida);
+  }
+
+  .indice__fio {
+    flex: 1;
+    height: 1px;
+    margin-right: 0.75rem;
+    background: color-mix(in srgb, var(--color-osso) 55%, transparent);
+    transform: scaleX(0.18);
+    transform-origin: 0 50%;
+    transition: transform 0.5s var(--ease-entra-sai);
+  }
+
+  .indice__onde {
+    flex: none;
+    font-size: var(--text-rotulo);
+    color: var(--color-osso-suave);
+  }
+
+  .indice__ligacao:hover .indice__fio,
+  .indice__ligacao:focus-visible .indice__fio,
+  .indice__ligacao[aria-current] .indice__fio {
+    transform: scaleX(1);
+  }
+
+  /* No toque não existe hover: o fio curto deixava o nome da parte solto
+     do outro lado da linha. Lá ele fica inteiro, como o fio de um sumário. */
+  @media (hover: none) {
+    .indice__fio {
+      transform: none;
+    }
+  }
+
+  .indice__ligacao:hover .indice__ponto,
+  .indice__ligacao:focus-visible .indice__ponto,
+  .indice__ligacao[aria-current] .indice__ponto {
+    background: var(--color-osso);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .indice__ligacao:hover .indice__pergunta {
+      transform: translateX(10px);
+    }
+  }
+
+  /* A parte que a pessoa está lendo agora: fio inteiro, ponto cheio e o
+     nome em osso pleno. Três sinais, como o hotspot da seção 3. */
+  .indice__ligacao[aria-current] .indice__onde {
+    color: var(--color-osso);
+  }
+
+  .indice__agendar {
+    margin: auto 0 0;
+  }
+
+  /* Com a folha aberta a página atrás não rola. */
+  :global(.indice-aberto) {
+    overflow: hidden;
+  }
+
+  /* --- abrir e fechar -----------------------------------------------------
+     A folha entra pela esquerda; as perguntas sobem pela máscara uma a uma,
+     o mesmo gesto dos títulos de seção. `@starting-style` dá o estado de
+     onde a transição parte quando o <dialog> aparece, e `allow-discrete`
+     segura o `display` e a camada de cima até a saída terminar. */
+  @media (prefers-reduced-motion: no-preference) {
+    .indice {
+      transition:
+        transform 0.55s var(--ease-entra-sai),
+        display 0.55s allow-discrete,
+        overlay 0.55s allow-discrete;
+      transform: translateX(-100%);
+    }
+
+    .indice[open] {
+      transform: none;
+
+      @starting-style {
+        transform: translateX(-100%);
+      }
+    }
+
+    .indice::backdrop {
+      transition:
+        opacity 0.55s var(--ease-saida),
+        display 0.55s allow-discrete,
+        overlay 0.55s allow-discrete;
+      opacity: 0;
+    }
+
+    .indice[open]::backdrop {
+      opacity: 1;
+
+      @starting-style {
+        opacity: 0;
+      }
+    }
+
+    /* Animação, não transição, e em `translate` e `scale` — propriedades
+       separadas do `transform` que o hover usa. Com transição no mesmo
+       `transform`, o atraso escalonado da entrada valeria também para o
+       hover, e a pergunta demoraria meio segundo para responder ao mouse.
+       Animação recomeça sozinha cada vez que o <dialog> volta a aparecer. */
+    .indice[open] .indice__pergunta {
+      animation: subir-pergunta 0.7s var(--ease-saida) calc(0.18s + var(--i) * 60ms) both;
+    }
+
+    .indice[open] .indice__fio {
+      animation: correr-fio 0.5s var(--ease-entra-sai) calc(0.35s + var(--i) * 60ms) both;
+    }
+  }
+
+  @keyframes subir-pergunta {
+    from {
+      clip-path: inset(0 0 100% 0);
+      translate: 0 0.4em;
+    }
+    to {
+      clip-path: inset(-0.2em 0 -0.2em 0);
+      translate: 0 0;
+    }
+  }
+
+  @keyframes correr-fio {
+    from {
+      scale: 0 1;
+    }
+  }
+</style>

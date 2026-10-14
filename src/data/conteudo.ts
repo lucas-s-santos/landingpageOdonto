@@ -189,17 +189,66 @@ export const ABERTURA = {
   },
   apoio:
     'Você vai entender o seu caso antes de decidir qualquer coisa. Inclusive antes de decidir se vai tratar aqui.',
+  /**
+   * O rótulo de prancha sobre o dente do vídeo: um ponto na coroa, um fio,
+   * e o nome da parte. É a linguagem da seção 3 aparecendo já no topo — a
+   * primeira coisa que a página faz é explicar, que é o que o título promete.
+   * "A camada mais dura do corpo" é fato de anatomia, não superlativo sobre
+   * a clínica.
+   */
+  rotulo: {
+    nome: 'Esmalte',
+    apoio: 'A camada mais dura do corpo. Role para ver o dente por dentro.',
+    // No celular o vídeo tem 350px de largura e o rótulo inteiro cobria
+    // metade do dente. Lá ele diz só o essencial.
+    apoioCurto: 'Role para ver por dentro.',
+  },
 };
 
 export const CTA = 'Agendar avaliação';
+
+/**
+ * O MENU É A LISTA DE DÚVIDAS, não a lista de seções.
+ *
+ * Menu de site de clínica diz "Sobre · Serviços · Equipe · Contato": o nome
+ * que a CLÍNICA dá às próprias partes. Mas a ordem desta página é a ordem
+ * das objeções de quem visita (BRIEF seção 4) — cada seção existe para
+ * responder uma pergunta. Então o menu lista as perguntas, na voz de quem
+ * pergunta, e cada uma leva à parte que responde.
+ *
+ * Fica de fora "como eu marco?": a resposta é o botão "Agendar avaliação",
+ * que está no cabeçalho ao lado. Um segundo caminho para o mesmo lugar, com
+ * outro verbo, é o CTA secundário que o BRIEF proíbe.
+ *
+ * `ancora` é o id do título da seção. Se um título mudar de id, o teste de
+ * acessibilidade acusa o link quebrado.
+ */
+export const INDICE = {
+  titulo: 'Suas dúvidas',
+  intro: 'Cada uma tem uma parte da página que responde.',
+  itens: [
+    { pergunta: 'Vão me julgar por ter demorado?', onde: 'Como atendemos', ancora: 'atendimento-titulo' },
+    { pergunta: 'Não entendo nada de dente. E agora?', onde: 'O dente por dentro', ancora: 'anatomia-titulo' },
+    { pergunta: 'Vocês fazem o que eu preciso?', onde: 'O que a gente faz', ancora: 'tratamentos-titulo' },
+    { pergunta: 'Quem vai me atender?', onde: 'Quem atende', ancora: 'equipe-titulo' },
+    { pergunta: 'É limpo? É seguro?', onde: 'Onde você vai sentar', ancora: 'estrutura-titulo' },
+    { pergunta: 'Quanto tempo leva a primeira consulta?', onde: 'Primeira consulta', ancora: 'consulta-titulo' },
+    { pergunta: 'Onde fica e que horas abre?', onde: 'Rodapé', ancora: 'onde-estamos' },
+  ],
+} as const;
 
 export const COMO_ATENDEMOS = {
   titulo: 'Ninguém aqui vai te dar sermão.',
   paragrafos: [
     'Muita gente chega depois de anos sem consultar. Às vezes por medo, às vezes porque nunca sobrou dinheiro no mês certo, às vezes porque uma experiência ruim ficou. A gente já ouviu todas essas, e nenhuma delas muda a forma como você vai ser atendido.',
     'Na avaliação a gente olha, explica o que encontrou e diz quais são os caminhos. Se der para tratar em etapas, a gente monta as etapas. Se der para esperar, a gente fala que dá.',
-    'Você decide depois, com a informação na mão e sem ninguém em cima.',
   ],
+  /**
+   * A frase que fecha a seção, em tamanho de título. Era o terceiro
+   * parágrafo; subiu porque é a resposta inteira à objeção da seção ("vão me
+   * julgar?"). As palavras acendem no ritmo de quem rola — MOTION.md §11.
+   */
+  fecho: 'Você decide depois, com a informação na mão e sem ninguém em cima.',
 } as const;
 
 export const ANATOMIA = {
@@ -212,6 +261,18 @@ export const ANATOMIA = {
    */
   intro:
     'Você não precisa saber odontologia para decidir bem. Precisa saber onde está o problema, porque é isso que muda o tratamento. São quatro regiões, e cada uma avisa de um jeito diferente.',
+  /**
+   * VER POR DENTRO. Escolher uma parte corta o modelo ao meio, como na
+   * prancha de um livro de anatomia, e mostra as camadas: o esmalte por
+   * fora, a dentina por dentro, e a polpa — a câmara e os canais — no
+   * centro. A legenda abaixo diz o que está aceso.
+   *
+   * Conteúdo educativo é o que a CFO-196 permite e a página usa como fonte
+   * de confiança: nada aqui fala da clínica, só do dente.
+   */
+  verPorDentro: 'Ver por dentro',
+  inteiro: 'Inteiro',
+  legendaInteiro: 'Toque numa parte do dente, ou num botão abaixo, para ver por dentro.',
   /**
    * `x` e `y` em porcentagem da imagem, medidos sobre o recorte em
    * public/image/anatomia-molar.webp.
@@ -227,6 +288,7 @@ export const ANATOMIA = {
       texto:
         'A camada de fora, e a mais dura do corpo. Não tem nervo: um problema que ainda está só aqui não dói. Por isso ele aparece em exame, e não em crise.',
       tratamento: 'limpeza',
+      corte: 'Em corte: o esmalte é a casca branca da coroa. Fino, duro e sem nervo nenhum.',
     },
     {
       id: 'dentina',
@@ -236,6 +298,7 @@ export const ANATOMIA = {
       texto:
         'Logo abaixo do esmalte, cheia de canais finos que chegam até o nervo. Quando fica exposta, dá aquela pontada curta no gelado, no quente ou no doce. A que passa rápido e volta sempre.',
       tratamento: 'restauracao',
+      corte: 'Em corte: a dentina é o miolo amarelado, embaixo do esmalte e ao longo da raiz.',
     },
     {
       id: 'colo',
@@ -245,6 +308,7 @@ export const ANATOMIA = {
       texto:
         'Onde a coroa encontra a raiz, na linha da gengiva. É a região que mais sofre com escovação forte demais. Se a sua gengiva sangra quando você escova, é aqui que a gente olha primeiro.',
       tratamento: 'gengiva',
+      corte: 'Em corte: o colo é a cintura do dente, onde a coroa vira raiz e a gengiva se prende.',
     },
     {
       id: 'raiz',
@@ -254,6 +318,7 @@ export const ANATOMIA = {
       texto:
         'Ancora o dente no osso e guarda o canal, onde ficam o nervo e os vasos. É a dor forte que aparece sozinha, sem você encostar em nada, e que costuma piorar quando você deita.',
       tratamento: 'canal',
+      corte: 'Em corte: as raízes e, dentro delas, o canal, por onde passam o nervo e os vasos.',
     },
   ],
 } as const;
@@ -268,6 +333,8 @@ export const ANATOMIA = {
 export const TRATAMENTOS = [
   {
     id: 'limpeza',
+    imagem: 'trat-limpeza',
+    alt: 'Escova de dentes nova, fio dental e escova interdental sobre um pano branco.',
     nome: 'Limpeza e prevenção',
     duracao: 'cerca de 40 minutos',
     texto:
@@ -275,6 +342,8 @@ export const TRATAMENTOS = [
   },
   {
     id: 'restauracao',
+    imagem: 'trat-restauracao',
+    alt: 'Escala de cor da resina: pequenas peças em forma de dente, em tons de marfim levemente diferentes.',
     nome: 'Restauração',
     duracao: 'de 30 a 60 minutos por dente',
     texto:
@@ -282,6 +351,8 @@ export const TRATAMENTOS = [
   },
   {
     id: 'canal',
+    imagem: 'trat-canal',
+    alt: 'Limas finas de aço usadas no tratamento de canal, com cabos coloridos na ordem da espessura.',
     nome: 'Tratamento de canal',
     duracao: 'de 1 a 3 sessões, de cerca de 1 hora',
     texto:
@@ -289,6 +360,8 @@ export const TRATAMENTOS = [
   },
   {
     id: 'gengiva',
+    imagem: 'trat-gengiva',
+    alt: 'Sonda periodontal de aço, com marcas de milímetro perto da ponta.',
     nome: 'Tratamento de gengiva',
     duracao: 'de 1 a 4 sessões, conforme a extensão',
     texto:
@@ -296,6 +369,8 @@ export const TRATAMENTOS = [
   },
   {
     id: 'implante',
+    imagem: 'trat-implante',
+    alt: 'Modelo de implante em três partes, na ordem de montagem: o pino de titânio, o pilar e a coroa de cerâmica.',
     nome: 'Implante',
     duracao: 'cirurgia de cerca de 1 hora, com meses de espera até a prótese',
     texto:
@@ -303,6 +378,8 @@ export const TRATAMENTOS = [
   },
   {
     id: 'protese',
+    imagem: 'trat-protese',
+    alt: 'Uma coroa de cerâmica e uma ponte de quatro dentes unidos.',
     nome: 'Prótese',
     duracao: 'de 2 a 5 sessões',
     texto:
@@ -310,6 +387,8 @@ export const TRATAMENTOS = [
   },
   {
     id: 'clareamento',
+    imagem: 'trat-clareamento',
+    alt: 'Par de moldeiras transparentes de clareamento, superior e inferior, sobre um pano branco.',
     nome: 'Clareamento',
     duracao: 'de 1 a 3 sessões, ou uso em casa por algumas semanas',
     texto:
@@ -356,12 +435,76 @@ const EQUIPE_CLIENTE = [
  */
 export const EQUIPE = EH_DEMO ? EQUIPE_DEMO : EQUIPE_CLIENTE;
 
+/**
+ * SEÇÃO 6 — a cadeia da esterilização.
+ *
+ * Antes era um parágrafo dizendo que o instrumental passa por lavagem,
+ * embalagem e autoclave. Agora são as cinco etapas, uma prancha cada, que se
+ * empilham conforme a pessoa rola (MOTION.md §11).
+ *
+ * ATENÇÃO, MODO CLIENTE — duas coisas a conferir antes de publicar:
+ *
+ * 1. As FOTOS. As quatro de `src/assets/flow/esteril-*` foram geradas no
+ *    Google Flow para a demo. No site de uma clínica de verdade, estrutura
+ *    tem que ser foto DELA: mostrar a esterilização de outro lugar como se
+ *    fosse a sua é publicidade enganosa, e a CFO-196 só permite mostrar
+ *    estrutura por ser a estrutura real. Por isso `imagem` é `null` fora da
+ *    demo, e a prancha mostra um [PREENCHER] até alguém pôr a foto certa.
+ *
+ * 2. O TEXTO. Descreve o fluxo que a RDC 15/2012 da Anvisa exige de todo
+ *    serviço de saúde. Mesmo assim é afirmação sobre o processo daquela
+ *    clínica: conferir com ela, etapa por etapa.
+ */
+const foto = (nome: string) => (EH_DEMO ? nome : null);
+
 export const ESTRUTURA = {
   titulo: 'Onde você vai sentar',
-  paragrafos: [
-    'Todo instrumental que entra na sua boca passa por lavagem, embalagem e autoclave, e sai de lá selado. A embalagem é aberta na sua frente, no começo do atendimento.',
-    'O que não dá para esterilizar é descartável e vai fora depois de um uso só.',
-  ],
+  cadeia: {
+    titulo: 'Antes de chegar até você',
+    intro:
+      'Todo instrumental que entra na sua boca passa por estas cinco etapas, nesta ordem, depois de cada atendimento.',
+    etapas: [
+      {
+        titulo: 'Lavagem',
+        texto:
+          'Sai do atendimento anterior direto para a lavagem. Resíduo preso no metal impede o vapor de chegar onde precisa, então esta etapa vem antes de qualquer outra.',
+        imagem: foto('esteril-1-lavagem'),
+        alt: 'Instrumental de aço submerso numa cuba de lavagem, com uma mão de luva apoiada na borda do cesto.',
+      },
+      {
+        titulo: 'Inspeção',
+        texto:
+          'Seco, cada instrumento é conferido peça por peça, contra a luz. O que ainda tiver resíduo volta para a lavagem.',
+        imagem: foto('esteril-2-inspecao'),
+        alt: 'Mãos de luva erguem um instrumento contra a luz da janela para conferir a ponta.',
+      },
+      {
+        titulo: 'Embalagem',
+        texto:
+          'Entra num envelope próprio para esterilização, que é selado. Fechado, ele fica protegido até ser aberto.',
+        imagem: foto('esteril-3-embalagem'),
+        alt: 'Mãos de luva fecham um envelope de esterilização; o instrumental aparece através do plástico.',
+      },
+      {
+        titulo: 'Autoclave',
+        texto:
+          'O envelope vai para a autoclave, que esteriliza com vapor sob pressão. Uma faixa no envelope muda de cor quando o ciclo se completa.',
+        imagem: foto('esteril-4-autoclave'),
+        alt: 'Câmara aberta da autoclave, com envelopes fechados deitados nas bandejas.',
+      },
+      {
+        titulo: 'Na sua frente',
+        texto:
+          'O envelope chega fechado até a sua cadeira e é aberto na sua frente, no começo do atendimento. O que não dá para esterilizar é descartável e vai fora depois de um uso só.',
+        // A última etapa é vídeo: é a única em que o movimento conta algo.
+        // Também gerado no Flow, então segue a mesma regra das fotos.
+        video: foto('instrumental-selado'),
+        alt: 'Mãos de luva abrem um envelope de esterilização selado sobre a bancada.',
+      },
+    ],
+  },
+  /** O vídeo da sala vazia também é gerado. Mesma regra. */
+  sala: foto('sala-vazia'),
 } as const;
 
 export const PRIMEIRA_CONSULTA = {

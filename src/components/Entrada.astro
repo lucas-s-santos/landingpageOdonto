@@ -1,0 +1,132 @@
+---
+import { ASSINATURA_LETRAS, PARTES_DA_MARCA as M } from '../data/marca';
+
+const pct = (n: number) => `${n.toFixed(3)}%`;
+---
+
+{/*
+  A ENTRADA. Ao abrir a página, a marca sobe numa folha de osso, o ponto
+  acende, o fio corre — e a folha sobe como uma cortina, com o fio de 1px na
+  borda de baixo varrendo a tela. A abertura já está se montando por baixo
+  dela; quando a folha sai, o título está no lugar e o rótulo da coroa ainda
+  vai aparecer.
+
+  Só na demo, que é a vitrine do produto. No site de uma clínica a pessoa
+  chega para marcar consulta, muitas vezes com dor; ninguém precisa esperar
+  uma vinheta.
+
+  POR QUE NÃO ATRASA NADA: a abertura não espera a folha sair — ela anima por
+  baixo, desde o primeiro quadro. O título é pintado no tempo de sempre, e o
+  Lighthouse mede o LCP por ele, não pela folha por cima.
+
+  POR QUE O PONTO E O FIO SÃO HTML, e não partes do SVG: animar o círculo e
+  o retângulo DENTRO do SVG não vai para o compositor. O navegador
+  recalculava estilo a cada quadro da vinheta, e o Lighthouse mobile caía de
+  93 estável para a faixa de 81 a 91. Agora o SVG leva só as letras, e tudo
+  que se move é `transform` em elemento HTML — anima fora da main thread.
+
+  SÓ NO DESKTOP. Medido em teste A/B alternado, nas mesmas condições: com
+  a vinheta o Lighthouse mobile deu 89, 83 e 88; sem ela, 92, 90 e 90. São
+  uns 4 pontos, gastos justo durante a carga — e o piso do projeto é 90 no
+  celular. No celular está a paciente, à noite, às vezes com dor (BRIEF
+  seção 1): para ela a página abre direto. No computador, onde a demo é
+  apresentada e gravada, a vinheta roda inteira.
+
+  Sem movimento (reduced-motion), a folha nem existe. `pointer-events: none`
+  desde o começo: dá para clicar através dela.
+*/}
+<div class="entrada" aria-hidden="true">
+  <div class="entrada__marca" style={`--proporcao: ${M.proporcao.toFixed(4)};`}>
+    <span class="entrada__letras" set:html={ASSINATURA_LETRAS} />
+    <span
+      class="entrada__ponto"
+      style={`left: ${pct(M.ponto.esquerda)}; top: ${pct(M.ponto.topo)}; width: ${pct(M.ponto.largura)};`}
+    />
+    <span
+      class="entrada__fio"
+      style={`left: ${pct(M.fio.esquerda)}; top: ${pct(M.fio.centro)}; width: ${pct(M.fio.largura)}; height: ${pct(M.fio.espessura)};`}
+    />
+  </div>
+</div>
+
+<style>
+  .entrada {
+    display: none;
+  }
+
+  @media (prefers-reduced-motion: no-preference) and (min-width: 900px) {
+    .entrada {
+      position: fixed;
+      inset: 0;
+      z-index: 300;
+      display: grid;
+      place-items: center;
+      background: var(--color-osso);
+      border-bottom: 1px solid var(--color-tinta);
+      color: var(--color-eucalipto);
+      pointer-events: none;
+      /* Camada própria desde o primeiro quadro: a subida da folha não pede
+         nada à main thread quando começa. */
+      will-change: transform;
+      animation: entrada-sobe 0.75s var(--ease-entra-sai) 0.95s both;
+    }
+
+    /* A caixa da marca corta as letras: elas sobem de baixo da borda. */
+    .entrada__marca {
+      position: relative;
+      height: clamp(2.6rem, 7vw, 4.75rem);
+      aspect-ratio: var(--proporcao);
+      overflow: hidden;
+    }
+
+    .entrada__letras :global(svg) {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      animation: entrada-letras 0.7s var(--ease-saida) 0.05s both;
+    }
+
+    .entrada__ponto {
+      position: absolute;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: currentColor;
+      animation: entrada-ponto 0.45s var(--ease-saida) 0.38s both;
+    }
+
+    .entrada__fio {
+      position: absolute;
+      translate: 0 -50%;
+      background: currentColor;
+      transform-origin: 0 50%;
+      animation: entrada-fio 0.5s var(--ease-entra-sai) 0.55s both;
+    }
+  }
+
+  @keyframes entrada-letras {
+    from {
+      transform: translateY(105%);
+    }
+  }
+
+  @keyframes entrada-ponto {
+    from {
+      transform: scale(0);
+    }
+  }
+
+  @keyframes entrada-fio {
+    from {
+      transform: scaleX(0);
+    }
+  }
+
+  /* No fim ela vai para fora da tela e deixa de existir para o navegador. */
+  @keyframes entrada-sobe {
+    to {
+      transform: translateY(-100%);
+      visibility: hidden;
+    }
+  }
+</style>

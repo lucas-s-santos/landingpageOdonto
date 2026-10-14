@@ -48,14 +48,32 @@ const DESKTOP = matchMedia('(min-width: 900px)');
  * dependência da SplitText junto com o GSAP.
  */
 function revelarTitulos() {
-  const titulos = [...document.querySelectorAll<HTMLElement>('h2')];
+  // Os títulos de dentro do menu de dúvidas ficam de fora: o <dialog> abre
+  // com a sua própria entrada, e um título preso no estado de "antes" ali
+  // dentro seria um menu sem cabeçalho.
+  const titulos = [...document.querySelectorAll<HTMLElement>('h2')].filter(
+    (t) => !t.closest('dialog')
+  );
   if (!titulos.length) return;
+
+  /*
+    O observador olha o PAI do título, não o título.
+
+    `.revela` corta o título por inteiro com `clip-path`, e o Chrome calcula
+    a interseção sobre a área já recortada — uma linha de altura zero. Num
+    salto de âncora (um link do menu, um #endereco colado no WhatsApp) que
+    deixa essa linha um fio acima do topo da tela, ela nunca é vista
+    entrando, e o título fica invisível para sempre. Medido no celular:
+    topo do título em −0,07px, `isIntersecting` falso, nenhuma revelação.
+    O pai não é recortado, e o título é a primeira coisa dentro dele.
+  */
+  const titulosPorAlvo = new Map<Element, HTMLElement>();
 
   const observador = new IntersectionObserver(
     (entradas) => {
       for (const e of entradas) {
         if (!e.isIntersecting) continue;
-        (e.target as HTMLElement).classList.add('revelado');
+        titulosPorAlvo.get(e.target)?.classList.add('revelado');
         observador.unobserve(e.target);
       }
     },
@@ -65,7 +83,9 @@ function revelarTitulos() {
 
   for (const t of titulos) {
     t.classList.add('revela');
-    observador.observe(t);
+    const alvo = t.parentElement ?? t;
+    titulosPorAlvo.set(alvo, t);
+    observador.observe(alvo);
   }
 }
 
@@ -229,6 +249,38 @@ async function movimentoDesktop() {
   gsap.ticker.add((t: number) => lenis.raf(t * 1000));
   gsap.ticker.lagSmoothing(0);
   lenis.on('scroll', ScrollTrigger.update);
+  // O menu de dúvidas (Indice.astro) rola até a seção por aqui quando o
+  // Lenis existe. Rolagem nativa disputaria com ele o mesmo scroll.
+  window.__lenis = lenis;
+
+  // --- a cena da abertura segue o mouse -------------------------------
+  // Movimento por ação da pessoa (MOTION.md §1-2). A cena vai na direção
+  // oposta ao cursor e o título um pouco a favor: dois planos andando
+  // diferente é o que dá profundidade. A cena é 16px maior que a moldura
+  // de cada lado, então os 14px de curso não abrem fresta na borda.
+  const topo = document.querySelector<HTMLElement>('.abertura');
+  const cena = document.querySelector<HTMLElement>('.abertura__cena');
+  const titulo = document.querySelector<HTMLElement>('.abertura__texto');
+  if (topo && cena && titulo && matchMedia('(pointer: fine)').matches) {
+    const opcoes = { duration: 1.1, ease: 'power3.out' };
+    const cenaX = gsap.quickTo(cena, 'x', opcoes);
+    const cenaY = gsap.quickTo(cena, 'y', opcoes);
+    const tituloX = gsap.quickTo(titulo, 'x', opcoes);
+
+    topo.addEventListener('mousemove', (e) => {
+      const r = topo.getBoundingClientRect();
+      const nx = (e.clientX - r.left) / r.width - 0.5;
+      const ny = (e.clientY - r.top) / r.height - 0.5;
+      cenaX(-nx * 28);
+      cenaY(-ny * 20);
+      tituloX(nx * 8);
+    });
+    topo.addEventListener('mouseleave', () => {
+      cenaX(0);
+      cenaY(0);
+      tituloX(0);
+    });
+  }
 
   // --- cursor --------------------------------------------------------
   // Um ponto de 10px que segue o mouse com atraso. O atraso é o efeito
@@ -255,6 +307,9 @@ async function movimentoDesktop() {
     );
 
     gsap.ticker.add(() => {
+      // Parado em cima do ponteiro, não escreve nada: antes o cursor se
+      // reposicionava 60 vezes por segundo no mesmo lugar.
+      if (Math.abs(mx - cx) < 0.1 && Math.abs(my - cy) < 0.1) return;
       // 0.12 é o valor. 0.3 fica nervoso, 0.05 fica lento.
       cx += (mx - cx) * 0.12;
       cy += (my - cy) * 0.12;
@@ -310,7 +365,13 @@ async function movimentoDesktop() {
         scrollTrigger: { trigger: abertura, start: 'top top', end: 'bottom top', scrub: true },
       })
       .to('.abertura__video video', { yPercent: 12, ease: 'none' }, 0)
-      .to('.abertura__texto', { yPercent: 40, ease: 'none' }, 0);
+      // O texto SOBE um pouco mais rápido que a página (−10%), e o vídeo
+      // desce devagar: dois planos em velocidades diferentes, a mesma
+      // profundidade. Era `yPercent: 40` — o texto descia atrasado e, com a
+      // abertura ocupando a tela inteira, o botão e o "Aberta agora"
+      // passavam por cima do título da seção 2. Medido: 91px em 1280×720,
+      // 30px em 1024×768. Subindo, ele se afasta da seção seguinte.
+      .to('.abertura__texto', { yPercent: -10, ease: 'none' }, 0);
   }
 
   gsap.utils.toArray<HTMLElement>('[data-parallax]').forEach((el) => {

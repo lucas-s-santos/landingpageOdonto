@@ -1,26 +1,83 @@
 ---
-import { ABERTURA, CTA } from '../data/conteudo';
+import { ABERTURA, CTA, EXPEDIENTE, FUSO } from '../data/conteudo';
 ---
 
 <!-- SEÇÃO 1 — vence "é clínica séria ou é fundo de quintal?"
      Assimétrica: 60% de texto à esquerda, vídeo sangrando pela direita.
      No mobile o vídeo vai ACIMA do título, nunca atrás: sobrepor texto a
-     720p em movimento em 390px abre mão do contraste AA. -->
+     720p em movimento em 390px abre mão do contraste AA.
+
+     TRÊS FAMÍLIAS DE MOVIMENTO, e só as três que o MOTION.md permite:
+
+       a ENTRADA, o único momento automático da página: o vídeo abre como
+       cortina, o título sobe linha por linha, e por fim um ponto acende na
+       coroa do dente, o fio se desenha e o rótulo aparece. Roda uma vez.
+
+       o MOUSE, no desktop: cena e título se deslocam em profundidades
+       diferentes, na direção oposta ao cursor (movimento.ts). É resposta.
+
+       a ROLAGEM: a câmera chega perto do dente e o rótulo se apaga
+       (MOTION.md §11). Presa ao scroll, reversível.
+
+     Nada de efeito de fundo — aurora, partícula ou gradiente animado é o
+     item 3 da seção 9 do BRIEF. O que torna o topo vivo aqui é a primeira
+     coisa que a página faz: explicar uma parte do dente. -->
 <section class="abertura" aria-labelledby="abertura-titulo">
   <div class="abertura__video">
-    <video
-      data-video
-      poster="/video/hero-molar-poster.webp"
-      muted
-      loop
-      playsinline
-      preload="none"
-      aria-hidden="true"
-      tabindex="-1"
-    >
-      <source src="/video/hero-molar.webm" type="video/webm" />
-      <source src="/video/hero-molar.mp4" type="video/mp4" />
-    </video>
+    {/*
+      A CENA é maior que a moldura 16px de cada lado. É o que deixa o
+      mouse deslocá-la sem abrir fresta na borda. O rótulo mora dentro
+      dela para andar junto com o dente.
+    */}
+    <div class="abertura__cena">
+      <video
+        data-video
+        poster="/video/hero-molar-poster.webp"
+        muted
+        loop
+        playsinline
+        preload="none"
+        aria-hidden="true"
+        tabindex="-1"
+      >
+        <source src="/video/hero-molar.webm" type="video/webm" />
+        <source src="/video/hero-molar.mp4" type="video/mp4" />
+      </video>
+
+      {/*
+        O RÓTULO DE PRANCHA. Um ponto na coroa, um fio em cotovelo e o nome
+        da parte — a linguagem da seção 3 já no topo.
+
+        `aria-hidden`: é a vitrine do que a seção 3 explica por inteiro, e
+        no DOM ele viria antes do título. Leitor de tela chega ao conteúdo
+        completo lá, na ordem certa.
+
+        O ponto fica ancorado num lugar do QUADRO do vídeo, não da tela.
+        Como o vídeo usa `object-fit: cover`, o recorte muda com a
+        proporção da janela; a posição sai da mesma conta que o navegador
+        faz para o cover, em unidades de contêiner (ver o CSS).
+      */}
+      <div class="rotulo-hero" aria-hidden="true">
+        <span class="rotulo-hero__fio rotulo-hero__fio--h"></span>
+        <span class="rotulo-hero__fio rotulo-hero__fio--v"></span>
+        <span class="rotulo-hero__ponto"></span>
+        <p class="rotulo-hero__texto">
+          <span class="rotulo-hero__nome">{ABERTURA.rotulo.nome}</span>
+          <span class="rotulo-hero__apoio rotulo-hero__apoio--longo">{ABERTURA.rotulo.apoio}</span>
+          <span class="rotulo-hero__apoio rotulo-hero__apoio--curto">{ABERTURA.rotulo.apoioCurto}</span>
+        </p>
+      </div>
+    </div>
+
+    {/*
+      A CORTINA: uma folha da cor do fundo por cima do vídeo, que recolhe
+      para a esquerda e o descobre. Era um `clip-path` animado na própria
+      cena — e `clip-path` repinta o bloco inteiro a cada quadro na main
+      thread. Medido no Lighthouse mobile: Performance caiu de 95 para 89,
+      com 330 ms de bloqueio, tudo em estilo e pintura durante a entrada.
+      Uma folha que encolhe por `transform` roda no compositor.
+    */}
+    <span class="abertura__cortina" aria-hidden="true"></span>
   </div>
 
   <div class="abertura__texto">
@@ -37,8 +94,43 @@ import { ABERTURA, CTA } from '../data/conteudo';
     <p class="mt-10">
       <a href="#agendar" class="cta" data-ima>{CTA}</a>
     </p>
+
+    {/*
+      Aberta ou fechada, embaixo do primeiro botão. Informação real, no
+      lugar onde a decisão acontece — a mesma conta da seção 8
+      (src/scripts/expediente.ts). Nasce escondida: o HTML é estático, e
+      dizer qualquer coisa no servidor seria mentira metade do tempo. Sem
+      JavaScript, ou com o horário ainda [PREENCHER], a linha não existe.
+    */}
+    <p
+      class="abertura__estado text-rotulo"
+      data-expediente={JSON.stringify(EXPEDIENTE)}
+      data-fuso={FUSO}
+      hidden
+    >
+    </p>
   </div>
 </section>
+
+<script>
+  import { estadoAgora, lerFaixas } from '../scripts/expediente';
+
+  const linha = document.querySelector<HTMLElement>('.abertura__estado');
+  if (linha) {
+    const faixas = lerFaixas(linha);
+    const escrever = () => {
+      const estado = estadoAgora(faixas, linha.dataset.fuso);
+      if (!estado) return;
+      linha.textContent = estado.aberta
+        ? `Aberta agora, até as ${estado.fecha}.`
+        : `Fechada agora. Abre ${estado.quando} às ${estado.abre}.`;
+      linha.dataset.estado = estado.aberta ? 'aberta' : 'fechada';
+      linha.hidden = false;
+    };
+    escrever();
+    setInterval(escrever, 60_000);
+  }
+</script>
 
 <style>
   .abertura {
@@ -48,17 +140,33 @@ import { ABERTURA, CTA } from '../data/conteudo';
     padding-block: 2rem 0;
   }
 
-  /* O `scale(1.06)` da animação de entrada empurra o vídeo ~22px para fora
-     da largura durante 1,6 s, e sem recorte isso vira uma barra de rolagem
-     horizontal piscando no carregamento. O contêiner corta; o zoom continua
-     igual. */
+  /* A moldura corta; a cena, maior que ela, se move por dentro. */
   .abertura__video {
+    position: relative;
     overflow: hidden;
+    height: clamp(240px, 44vh, 380px);
   }
 
-  .abertura__video video {
+  /* Recolhida por padrão: sem animação (reduced-motion) ela não existe. */
+  .abertura__cortina {
+    position: absolute;
+    inset: 0;
+    background: var(--color-osso);
+    transform: scaleX(0);
+    transform-origin: 0 50%;
+    pointer-events: none;
+  }
+
+  .abertura__cena {
+    position: absolute;
+    inset: -16px;
+    /* As unidades `cq*` do rótulo medem esta caixa. */
+    container-type: size;
+  }
+
+  .abertura__cena video {
     width: 100%;
-    height: clamp(220px, 42vh, 340px);
+    height: 100%;
     object-fit: cover;
   }
 
@@ -73,14 +181,137 @@ import { ABERTURA, CTA } from '../data/conteudo';
     margin-bottom: -0.12em;
   }
 
-  /* --- a abertura anima em CSS, não em GSAP ---------------------------
-     Esta é a única animação automática do primeiro paint, e ela é
-     predeterminada: ninguém interage com ela. Animação CSS roda fora da
-     main thread e continua suave enquanto o navegador ainda está baixando
-     e compilando o resto.
-     Fazer isso em GSAP custava 5,2 s de bootup e 912 ms numa única tarefa
-     longa no perfil mobile do Lighthouse — medido, não suposto. */
+  /* --- aberta / fechada ------------------------------------------------
+     Fio de 1px à esquerda, como a linha do expediente na seção 8. Aberta
+     acende o fio. Sem pastilha colorida: o âmbar é só do hotspot. */
+  .abertura__estado {
+    margin-top: 1.25rem;
+    padding-left: 0.75rem;
+    border-left: 1px solid var(--color-linha);
+  }
+
+  .abertura__estado[data-estado='aberta'] {
+    border-left-color: var(--color-tinta);
+  }
+
+  /* --- o rótulo de prancha --------------------------------------------
+     O PONTO fica na coroa do dente: x 600, y 250 no quadro de 1280×720.
+     O vídeo cobre a cena com `object-fit: cover`, então a escala é a
+     maior entre largura/1280 e altura/720, e o quadro fica centrado. A
+     mesma conta em CSS:
+
+       escala = max(100cqw / 1280, 100cqh / 720)
+       x      = 50cqw + (600 − 640) × escala
+       y      = 50cqh + (250 − 360) × escala
+
+     O RÓTULO fica no canto de baixo à direita, sobre o fundo cinza do
+     vídeo, e o fio faz cotovelo até ele, como na prancha da seção 3. */
+  .rotulo-hero {
+    --escala: max(100cqw / 1280, 100cqh / 720);
+    --px: calc(50cqw - 40 * var(--escala));
+    --py: calc(50cqh - 110 * var(--escala));
+    /* canto do cotovelo e topo do rótulo */
+    --lx: calc(100cqw - 16px - 2.75rem);
+    --ly: calc(100cqh - 16px - 8.5rem);
+
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    color: var(--color-tinta);
+  }
+
+  .rotulo-hero__ponto {
+    position: absolute;
+    left: var(--px);
+    top: var(--py);
+    width: 9px;
+    height: 9px;
+    margin: -4.5px 0 0 -4.5px;
+    border-radius: 50%;
+    background: var(--color-tinta);
+    /* Anel de osso: o ponto se lê sobre a coroa clara e sobre a sombra.
+       `outline`, não `box-shadow` — a página não tem sombra em lugar
+       nenhum, e o anel não é sombra. */
+    outline: 3px solid var(--color-osso);
+  }
+
+  .rotulo-hero__fio {
+    position: absolute;
+    background: var(--color-tinta);
+  }
+
+  .rotulo-hero__fio--h {
+    left: var(--px);
+    top: var(--py);
+    width: calc(var(--lx) - var(--px));
+    height: 1px;
+    transform-origin: 0 50%;
+  }
+
+  .rotulo-hero__fio--v {
+    left: var(--lx);
+    top: var(--py);
+    width: 1px;
+    height: calc(var(--ly) - var(--py));
+    transform-origin: 50% 0;
+  }
+
+  /* Fundo osso sólido: o texto nunca depende do vídeo atrás para ter
+     contraste. 13,6:1, como em qualquer parte da página. */
+  .rotulo-hero__texto {
+    position: absolute;
+    right: calc(16px + 1.25rem);
+    top: var(--ly);
+    display: grid;
+    gap: 0.15rem;
+    max-width: min(17rem, calc(100cqw - 4rem));
+    padding: 0.6rem 0.8rem;
+    background: var(--color-osso);
+    border-top: 1px solid var(--color-tinta);
+  }
+
+  .rotulo-hero__nome {
+    font-family: var(--font-texto);
+    font-weight: 500;
+    font-size: var(--text-rotulo);
+    line-height: 1.3;
+  }
+
+  .rotulo-hero__apoio {
+    font-size: 0.8125rem;
+    line-height: 1.4;
+  }
+
+  /* No celular o vídeo tem ~350px de largura, e o rótulo inteiro cobria
+     metade do dente. Lá ele diz só o nome e o convite para rolar. */
+  .rotulo-hero__apoio--longo {
+    display: none;
+  }
+
+  /* --- a entrada --------------------------------------------------------
+     O único momento automático da página, em CSS: roda fora da main thread
+     e continua suave enquanto o navegador ainda baixa o resto. Fazer isto
+     em GSAP custava 5,2 s de bootup no perfil mobile — medido, não suposto.
+
+       0,00s  a cortina recolhe e descobre o vídeo, da direita para a
+              esquerda (1,3s, só `transform`)
+       0,00s  o vídeo assenta de 1,06 para 1 (1,6s)
+       0,20s  as linhas do título sobem pela máscara, 90 ms entre elas
+       0,70s  o parágrafo de apoio
+       0,90s  o botão
+       1,10s  aberta / fechada
+       1,25s  o ponto acende na coroa
+       1,40s  o fio corre até o canto
+       1,80s  o fio desce
+       2,05s  o rótulo sobe e aparece
+
+     O rótulo entra por último de propósito: primeiro a promessa (o
+     título), depois a prova (a página já explicando uma parte do dente). */
   @media (prefers-reduced-motion: no-preference) {
+    .abertura__cortina {
+      animation: recolher 1.3s var(--ease-entra-sai) both;
+    }
+
     .abertura__texto h1 .linha > span {
       display: block;
       animation: subir 0.9s var(--ease-saida) both;
@@ -96,7 +327,7 @@ import { ABERTURA, CTA } from '../data/conteudo';
       animation-delay: 0.38s;
     }
 
-    .abertura__video video {
+    .abertura__cena video {
       animation: aproximar 1.6s cubic-bezier(0.22, 1, 0.36, 1) both;
     }
 
@@ -106,6 +337,116 @@ import { ABERTURA, CTA } from '../data/conteudo';
 
     .abertura .cta {
       animation: assentar 0.5s var(--ease-saida) 0.9s both;
+    }
+
+    .abertura__estado {
+      animation: aparecer 0.5s var(--ease-saida) 1.1s both;
+    }
+
+    .rotulo-hero__ponto {
+      animation: acender-ponto 0.45s var(--ease-saida) 1.25s both;
+    }
+
+    .rotulo-hero__fio--h {
+      animation: correr-h 0.45s var(--ease-entra-sai) 1.4s both;
+    }
+
+    .rotulo-hero__fio--v {
+      animation: correr-v 0.35s var(--ease-entra-sai) 1.8s both;
+    }
+
+    .rotulo-hero__texto {
+      animation: revelar-rotulo 0.6s var(--ease-saida) 2.05s both;
+    }
+  }
+
+  @keyframes recolher {
+    from {
+      transform: scaleX(1);
+    }
+    to {
+      transform: scaleX(0);
+    }
+  }
+
+  @keyframes acender-ponto {
+    from {
+      transform: scale(0);
+    }
+  }
+
+  @keyframes correr-h {
+    from {
+      transform: scaleX(0);
+    }
+  }
+
+  @keyframes correr-v {
+    from {
+      transform: scaleY(0);
+    }
+  }
+
+  /* Opacidade e deslocamento, não máscara: pelo mesmo motivo da cortina,
+     só propriedades que o compositor anima sozinho. */
+  @keyframes revelar-rotulo {
+    from {
+      opacity: 0;
+      transform: translateY(0.5rem);
+    }
+  }
+
+  /* --- ao rolar: a câmera chega perto do dente --------------------------
+     Presa à rolagem (MOTION.md §11). Enquanto a abertura sai pelo topo, o
+     vídeo aproxima DENTRO da própria moldura e o rótulo se apaga — o dente
+     está indo para a seção 3, onde ele é aberto de verdade. A moldura não
+     cresce: o 720p não aguenta full-bleed.
+
+     Anima `scale` e `opacity`, não `transform`. O `transform` do vídeo e da
+     cena fica livre para a entrada e para o GSAP do desktop (parallax e
+     mouse). Se fosse `transform`, a animação de CSS venceria o estilo em
+     linha do GSAP e o parallax sumiria sem erro nenhum. */
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .abertura {
+        view-timeline: --abertura block;
+      }
+
+      /* Duas animações no mesmo elemento: a entrada, presa ao relógio, e
+         a aproximação, presa à rolagem. Propriedades separadas, NUNCA o
+         atalho `animation:` junto com `animation-timeline` — ver o aviso
+         em ComoAtendemos.astro. A duração de 1s da segunda não significa
+         nada: numa linha do tempo de rolagem ela vira proporção. */
+      .abertura__cena video {
+        animation-name: aproximar, chegar-perto;
+        animation-duration: 1.6s, 1s;
+        animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1), linear;
+        animation-fill-mode: both, both;
+        animation-timeline: auto, --abertura;
+        animation-range: normal, exit-crossing 0% exit-crossing 100%;
+      }
+
+      /* O rótulo some no primeiro terço da saída: depois disso o vídeo
+         já aproximou, e o ponto não está mais sobre a coroa. */
+      .rotulo-hero {
+        animation-name: apagar-rotulo;
+        animation-timing-function: linear;
+        animation-fill-mode: both;
+        animation-timeline: --abertura;
+        animation-range: exit-crossing 0% exit-crossing 30%;
+      }
+    }
+  }
+
+  @keyframes apagar-rotulo {
+    to {
+      opacity: 0;
+    }
+  }
+
+  @keyframes chegar-perto {
+    to {
+      scale: 1.12;
     }
   }
 
@@ -140,7 +481,7 @@ import { ABERTURA, CTA } from '../data/conteudo';
       align-items: center;
       gap: 0;
       padding-right: 0; /* o vídeo sangra pela direita */
-      padding-block: 3rem 0;
+      padding-block: 2rem 0;
     }
 
     .abertura__video {
@@ -151,12 +492,16 @@ import { ABERTURA, CTA } from '../data/conteudo';
       grid-column: 1 / -1;
       grid-row: 1;
       margin-left: 46%;
+
+      /* A abertura ocupa a primeira tela inteira: a janela menos o
+         cabeçalho. Teto de 940px para monitor muito alto, onde o 720p
+         esticado começa a mostrar a trama. */
+      height: calc(100svh - 8rem);
+      min-height: 520px;
+      max-height: 940px;
     }
 
-    .abertura__video video {
-      height: 78vh;
-      max-height: 720px;
-
+    .abertura__cena video {
       /* A borda esquerda do vídeo se dissolve no fundo da página. É isso que
          permite o título invadir sem perder contraste: onde o texto passa por
          cima, o vídeo já está quase todo em --osso.
@@ -164,6 +509,30 @@ import { ABERTURA, CTA } from '../data/conteudo';
          afrouxar a entrelinha de 0.98 e mataria o aperto do display. */
       -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 40%);
       mask-image: linear-gradient(to right, transparent 0%, #000 40%);
+    }
+
+    .rotulo-hero {
+      --ly: calc(100cqh - 16px - 10rem);
+    }
+
+    .rotulo-hero__texto {
+      right: calc(16px + 2rem);
+    }
+
+    .rotulo-hero__nome {
+      font-size: 0.9375rem;
+    }
+
+    .rotulo-hero__apoio {
+      font-size: var(--text-rotulo);
+    }
+
+    .rotulo-hero__apoio--longo {
+      display: block;
+    }
+
+    .rotulo-hero__apoio--curto {
+      display: none;
     }
 
     .abertura__texto {

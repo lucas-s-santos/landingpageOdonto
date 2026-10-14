@@ -1,5 +1,7 @@
 ---
 import { COMO_ATENDEMOS } from '../data/conteudo';
+
+const palavras = COMO_ATENDEMOS.fecho.split(' ');
 ---
 
 <!-- SEÇÃO 2 — vence "vão me julgar / vou levar sermão?"
@@ -16,4 +18,77 @@ import { COMO_ATENDEMOS } from '../data/conteudo';
       {COMO_ATENDEMOS.paragrafos.map((p) => <p>{p}</p>)}
     </div>
   </div>
+
+  {/*
+    A frase que fecha a seção, em tamanho de título. As palavras acendem no
+    ritmo de quem rola: presas à rolagem, não disparadas por ela (MOTION.md
+    §11). Quem para de rolar para a frase no meio; quem volta, apaga.
+
+    As palavras são <span> comuns, em linha, sem papel nenhum: leitor de
+    tela lê a frase inteira de uma vez, e copiar e buscar funcionam.
+
+    CONTRASTE: o estado apagado é tinta a 55% sobre osso, 3,55:1. Passa AA
+    para texto grande (piso 3:1), e a frase tem no mínimo 29,6px. Nenhuma
+    palavra fica ilegível em momento algum.
+  */}
+  <p
+    class="fecho col-span-full md:col-start-3 md:col-span-9"
+    style={`--n: ${palavras.length};`}
+  >
+    {
+      palavras.map((p, i) => (
+        <Fragment>
+          <span class="fecho__palavra" style={`--i: ${i};`}>{p}</span>{' '}
+        </Fragment>
+      ))
+    }
+  </p>
 </section>
+
+<style>
+  .fecho {
+    margin-top: clamp(3.5rem, 8vw, 6rem);
+    max-width: 22ch;
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: clamp(1.85rem, 3.6vw, 3.25rem);
+    line-height: 1.08;
+    letter-spacing: -0.018em;
+    text-wrap: balance;
+  }
+
+  /* Cada palavra ocupa uma fatia igual do trecho em que a frase atravessa
+     o meio da tela: de quando o topo dela passa de 65% da altura da janela
+     até quando passa de 35%. */
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .fecho {
+        view-timeline: --fecho block;
+      }
+
+      .fecho__palavra {
+        /* Propriedades separadas, NUNCA o atalho `animation:` junto com
+           `animation-timeline`. O minificador do build junta as duas num
+           atalho só, o Chrome descarta esse atalho, e a animação morre sem
+           erro nenhum. Medido: no Chrome 151 cinco dos seis movimentos
+           saíam `animation: none`. `npm run motion` confere. */
+        animation-name: acender;
+        animation-timing-function: linear;
+        animation-fill-mode: both;
+        animation-timeline: --fecho;
+        animation-range:
+          cover calc(30% + 25% * var(--i) / var(--n))
+          cover calc(30% + 25% * (var(--i) + 1) / var(--n));
+      }
+    }
+  }
+
+  @keyframes acender {
+    from {
+      opacity: 0.55;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+</style>
