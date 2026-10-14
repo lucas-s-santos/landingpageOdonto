@@ -12,7 +12,9 @@ import PrimeiraConsulta from '../components/PrimeiraConsulta.astro';
 import Agendar from '../components/Agendar.astro';
 import Rodape from '../components/Rodape.astro';
 import BarraFixa from '../components/BarraFixa.astro';
-import { CLINICA } from '../data/conteudo';
+import Entrada from '../components/Entrada.astro';
+import Fecho from '../components/Fecho.astro';
+import { CLINICA, EH_DEMO } from '../data/conteudo';
 
 /**
  * PASSO 3 — estrutura semântica com copy real, ainda sem movimento.
@@ -30,6 +32,14 @@ import { CLINICA } from '../data/conteudo';
   titulo={`${CLINICA.nome} — dentista em ${CLINICA.cidade}`}
   descricao="Avaliação odontológica com explicação do que foi encontrado, por escrito. Atendimento em [PREENCHER cidade]."
 >
+  {/* A vinheta de entrada: só na demo. Ver Entrada.astro. */}
+  {EH_DEMO && <Entrada />}
+  {/*
+    A PÁGINA é uma folha opaca por cima do Fecho. No fim da rolagem ela sobe
+    e descobre a faixa que estava parada embaixo — ver Fecho.astro. Sem o
+    Fecho (fora da demo), o invólucro não muda nada.
+  */}
+  <div class="pagina">
   <Cabecalho />
 
   <main id="conteudo">
@@ -46,6 +56,9 @@ import { CLINICA } from '../data/conteudo';
 
   <Rodape />
   <BarraFixa />
+  </div>
+
+  {EH_DEMO && <Fecho />}
 </Base>
 
 <script>

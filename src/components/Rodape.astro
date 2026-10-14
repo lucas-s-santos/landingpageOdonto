@@ -19,7 +19,7 @@ import { CLINICA, EH_DEMO, HORARIO_TEXTO } from '../data/conteudo';
     </div>
 
     <div class="col-span-full mt-8 md:col-span-4 md:mt-0">
-      <h2 class="text-rotulo font-medium">Onde estamos</h2>
+      <h2 id="onde-estamos" class="text-rotulo font-medium">Onde estamos</h2>
       <address class="text-rodape mt-3 not-italic">
         {CLINICA.endereco}<br />
         {CLINICA.cidade} — {CLINICA.uf}<br />
@@ -65,7 +65,9 @@ import { CLINICA, EH_DEMO, HORARIO_TEXTO } from '../data/conteudo';
         </p>
       )
     }
+
   </div>
+
 </footer>
 
 <style>

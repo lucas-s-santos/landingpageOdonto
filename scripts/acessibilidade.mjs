@@ -15,7 +15,7 @@ import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import { join, extname, resolve, sep } from 'node:path';
 const RAIZ = resolve('dist');
-const MIME={'.html':'text/html; charset=utf-8','.css':'text/css','.js':'text/javascript','.woff2':'font/woff2','.jpg':'image/jpeg','.webp':'image/webp','.mp4':'video/mp4','.webm':'video/webm'};
+const MIME={'.html':'text/html; charset=utf-8','.css':'text/css','.js':'text/javascript','.woff2':'font/woff2','.jpg':'image/jpeg','.webp':'image/webp','.avif':'image/avif','.mp4':'video/mp4','.webm':'video/webm'};
 const s=createServer(async(req,res)=>{try{let p=resolve(RAIZ,'.'+decodeURIComponent(req.url.split('?')[0]));if(p!==RAIZ&&!p.startsWith(RAIZ+sep)){res.writeHead(403);res.end();return;}if((await stat(p)).isDirectory())p=join(p,'index.html');res.writeHead(200,{'Content-Type':MIME[extname(p)]??'application/octet-stream'});res.end(await readFile(p));}catch{res.writeHead(404);res.end();}});
 await new Promise(r=>s.listen(4400,r));
 const b=await chromium.launch(); const pg=await b.newPage({viewport:{width:1440,height:900}});

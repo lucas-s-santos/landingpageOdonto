@@ -1,8 +1,9 @@
 # HANDOFF — estado do projeto e como retomar
 
-Atualizado em 04/09/2026: conserto do pin da seção do dente e quatro
-ferramentas para o consultório. Leia este arquivo primeiro — ele diz onde o
-projeto parou e o que fazer em seguida.
+Atualizado em 14/10/2026: rolagem que explica (seis momentos presos ao
+scroll), as pranchas da esterilização, imagem nos tratamentos, prévia de
+link e favicon. Ver a Parte 4C e o `PLANO-V2.md`. Leia este arquivo
+primeiro — ele diz onde o projeto parou e o que fazer em seguida.
 
 ---
 
@@ -289,6 +290,20 @@ Pode ir para `clinicademo.calmdev.com.br`.
       profissional** — "Clínica geral e endodontia" só pode ir ao ar se
       estiver registrada. Seção 3 do BRIEF
 - [ ] retratos reais da equipe, 4:5
+- [ ] **fotos reais da esterilização**, uma por etapa (lavagem, inspeção,
+      embalagem, autoclave) e o vídeo ou foto da embalagem sendo aberta.
+      No modo cliente as pranchas mostram `[PREENCHER]` até isso chegar:
+      as imagens da demo foram geradas no Flow, e mostrar a esterilização
+      de outro lugar como se fosse a da clínica é publicidade enganosa
+- [ ] **vídeo ou foto real da sala**, pelo mesmo motivo — o `sala-vazia`
+      também é gerado. Sai sozinho no modo cliente
+- [ ] conferir com a clínica, etapa por etapa, o texto da cadeia de
+      esterilização em `ESTRUTURA.cadeia` (é afirmação sobre o processo dela)
+- [ ] dentista confere as 7 imagens dos tratamentos (material e modelo
+      didático gerados no Flow; erro de instrumento é pior que não ter imagem)
+- [ ] `npm run og` depois de preencher: a prévia do link sai do conteudo.ts
+      e o script recusa gerar com `[PREENCHER]`. Trocar o `favicon.svg` pela
+      marca da clínica
 - [ ] trocar `site` no `astro.config.mjs` pelo domínio real
 
 ### Resultado medido
@@ -309,6 +324,9 @@ A varredura anti-clichê contra a seção 9 do BRIEF passa nos quinze padrões.
 npm run dev            # http://localhost:4321
 npm run verificar      # build + CFO-196 + a11y + movimento + 3D + Lighthouse + screenshots
 npm run video          # reprocessa os vídeos de _origem/video-flow/
+npm run imagem         # recorta as imagens de _origem/imagem-flow/ para src/assets/flow/
+npm run og             # prévia do link (og.jpg), favicon e ícone da tela inicial
+python scripts/marca.py   # a marca Colo em vetor, em marca/ (fonttools + brotli)
 npm run conformidade   # só a varredura legal
 npm run a11y           # teclado, foco, títulos, JSON-LD
 npm run motion         # checagem final do MOTION.md
@@ -543,6 +561,191 @@ CFO-196:                    aprovado nas 2 páginas
                             em 360px
 dente:                      os 14 testes passam, 4 fios, nenhum sobre texto
 ```
+
+## Parte 4C — Sessão de 14/10/2026: rolagem que explica
+
+Pedido: visual mais profissional para vender, com elementos que se mexem ao
+rolar, usando como ideia componentes do Skiper UI e os sites spell.sh,
+originkit.dev, reactbits.dev e inspora.design. O plano, a revisão contra a
+seção 9 e o que foi descartado estão no `PLANO-V2.md`.
+
+### 4C.1 A regra mudou, com registro
+
+BRIEF seção 6 e MOTION.md ganharam a distinção: movimento **preso** à
+rolagem (a posição do scroll é a posição da animação) conta como ação da
+pessoa; movimento **disparado** pela rolagem continua proibido. Um por seção,
+e cada um carrega informação.
+
+### 4C.2 Skiper UI: as ideias, não os componentes
+
+Nenhum `shadcn add` foi rodado. 11 dos 18 pedidos são Pro (404 sem
+licença), os gratuitos são React + framer-motion num projeto Astro sem
+React, e a versão gratuita exige crédito no rodapé do cliente. As ideias
+foram reescritas em CSS scroll-driven animations: 0 KB de JavaScript novo,
+rodando também no celular.
+
+### 4C.3 Os seis momentos
+
+Especificados com valores na seção 11 do `MOTION.md`: a câmera que chega
+perto do dente na abertura, a frase que acende na seção 2, a fenda do
+esmalte, as pranchas da esterilização que empilham, e o fio e o relógio da
+primeira consulta. O dente continua como estava.
+
+### 4C.4 Defeitos encontrados no caminho, medidos
+
+- **O minificador matava as animações sem erro.** Ele juntava
+  `animation-timeline` dentro do atalho `animation:`, e o Chrome 151
+  descartava o atalho: cinco dos seis momentos saíam `animation: none`.
+  Conserto: propriedades separadas, nunca o atalho. `npm run motion` agora
+  confere cada um vivo.
+- **A pilha soltava a última prancha primeiro** e deixava à mostra um pedaço
+  da foto da autoclave embaixo dela. Conserto: margem que diminui um degrau
+  por prancha. Medido em 360 quadros, em 1440×900, 1366×768 e 390×844:
+  zero pixel de vazamento.
+- **O botão do cabeçalho quebrava em duas linhas no celular.** Sai abaixo de
+  640px, como o PLANO-DESIGN já previa.
+
+### 4C.5 Imagens
+
+As 11 do lote 2 do Flow estão em `_origem/imagem-flow/` (originais de 2,4 MB)
+e recortadas em `src/assets/flow/` por `npm run imagem`. O `<Picture>` do
+Astro gera AVIF e WebP em quatro larguras: o celular baixa entre 11 e 13 KB
+por prancha. Cor medida antes de entrar: todas entre −12 e +15 de desvio
+R−B (o alvo é até +18). Prompts em
+`https://claude.ai/artifact/Exm4o96a66m5Eg6gmgJPTG`.
+
+### 4C.6 Prévia de link e favicon
+
+Não existiam. A clínica distribui a página pelo WhatsApp e pela bio do
+Instagram, e o link chegava sem imagem. `npm run og` gera `og.jpg`
+(1200×630, 42 KB), `favicon.svg` e `apple-touch-icon.png` a partir do
+conteudo.ts.
+
+## Parte 4D — Sessão de 14/10/2026, tarde: marca, abertura e menu
+
+### 4D.1 A marca do produto: Colo
+
+Nome escolhido para o produto que a CalmDev vende às clínicas. As três
+imagens que o Flow gerou estão em `_origem/logo-flow/`; nenhuma servia como
+arquivo final (cópia fantasma da palavra numa, fio entrando no círculo como
+barra escura noutra, e imagem de gerador não é vetor). O desenho foi refeito
+em `marca/`, por `python scripts/marca.py` (precisa de `pip install fonttools
+brotli`): a palavra em curvas da Cabinet Grotesk, com o "o" final virando o
+ponto da prancha e o fio saindo dele, e o símbolo ponto + fio. A licença da
+fonte permite logo e registro como marca (seção 01, parágrafo 6). A
+assinatura aparece no rodapé da demo.
+
+**Antes de imprimir ou registrar:** busca no INPI (classes 42 e 35) e no
+registro.br. A busca na web não achou conflito na área, mas não substitui.
+
+**Atenção para o caminho "sistema":** a mesma licença proíbe disponibilizar
+a fonte para terceiros dentro de "plataforma SaaS, editor de modelos ou
+serviço parecido" (seção 02). Site entregue pronto para uma clínica é uso
+normal. Se o Colo virar um painel onde a clínica edita o próprio site com a
+fonte, isso precisa ser revisto antes.
+
+**Decisão do Lucas, 14/10/2026: o sistema é só de demonstração**, para
+divulgar o Colo em vídeo. Por isso o cabeçalho da demo leva a marca Colo no
+lugar de "Clínica Sobrado" (`src/data/marca.ts`), e o menu também. O rodapé
+continua com a clínica fictícia: responsável técnico e CRO zerado mostram a
+conformidade com a CFO-196, que é parte do que se vende. O modo `cliente`
+continua funcionando e volta o nome da clínica no cabeçalho.
+
+### 4D.2 A abertura, revista
+
+Ocupa a primeira tela inteira no desktop. A entrada ganhou a cortina do
+vídeo e, no fim, o rótulo de prancha: um ponto na coroa, o fio em cotovelo e
+"Esmalte". No desktop a cena e o título seguem o mouse em profundidades
+diferentes. "Aberta agora, até as 19h" embaixo do botão, pela mesma conta da
+seção 8, que saiu para `src/scripts/expediente.ts`. Linha do tempo completa
+no `MOTION.md`, seção 3.
+
+### 4D.3 O menu de dúvidas
+
+`Indice.astro`. Lista as dúvidas de quem visita e leva à seção que responde
+cada uma (BRIEF seção 4, e `MOTION.md` seção 12). Abre como uma folha
+eucalipto pela esquerda.
+
+### 4D.4 Defeitos encontrados no caminho, medidos
+
+- **Título invisível depois de um salto de âncora, no celular.** O
+  observador da revelação via a área recortada pelo `clip-path` — uma linha
+  de altura zero que o salto deixava 0,07px acima da tela. Afetava qualquer
+  link com `#`, não só o menu. Agora observa o pai do título.
+- **Clique numa dúvida não rolava no desktop**: o Lenis ainda estava parado
+  quando a rolagem foi pedida.
+- **O CTA de dentro do menu levava ao topo da página.** Corrigido.
+
+`npm run motion` cobre os três, e também a entrada da abertura e o menu por
+teclado (Esc fecha e devolve o foco).
+
+## Parte 4E — Sessão de 14/10/2026, noite: o dente por dentro e o celular
+
+### 4E.1 Ver por dentro
+
+O palco do 3D cresceu (de um quadro de 420px para a coluna inteira e quase a
+altura da janela) e ganhou o corte de prancha: escolher uma parte corta o
+dente ao meio e mostra esmalte, dentina e polpa. Detalhes no `MOTION.md`,
+seção 4B. A escolha é por uma fileira de botões "Ver por dentro" (os
+controles acessíveis), pelos marcadores, pelo título na lista ou tocando no
+próprio dente. Os marcadores ganharam o nome escrito ao lado e passam para
+a esquerda perto da borda. Sem o 3D, marcadores e botões não aparecem.
+
+### 4E.2 O celular, varrido inteiro
+
+Varredura automática de texto coberto em 390 e 360px, e captura tela a tela.
+O que estava errado e foi corrigido:
+
+- **A pilha da esterilização deixava o miolo de uma prancha aparecer por
+  cima da seguinte** no fim da sequência: no celular o texto vem antes da
+  foto e a altura das pranchas variava, então elas soltavam em momentos
+  diferentes. Todas reservam agora 6 linhas de texto (`6lh`) e têm a mesma
+  altura. `npm run motion` mede: 0px em 390 e em 360.
+- **O rótulo "Esmalte" do hero cobria metade do dente** no celular. Lá ele
+  diz só o nome e "Role para ver por dentro".
+- **A legenda do 3D ficava por cima das raízes** quando a câmera aproximava.
+  Saiu do palco.
+
+O resto do que a varredura apontou é o comportamento esperado: a barra fixa
+passando por cima do texto durante a rolagem, as pranchas cobrindo a
+anterior, o relógio da consulta grudado sobre as linhas já lidas.
+
+### 4E.3 Medido
+
+Lighthouse mobile 93 · acessibilidade 100 · boas práticas 100 · CFO-196 nas
+duas páginas · `npm run motion` e `npm run dente` aprovados.
+
+**Para quem for rodar os testes:** o `dente-check` e as capturas do 3D usam
+WebGL por software e pesam no processador. Não rode dois ao mesmo tempo.
+
+## Parte 4F — Sessão de 14/10/2026, fim do dia
+
+- **3D: só o que foi escolhido.** A parte escolhida fica sólida e cortada; o
+  resto vira fantasma. Esmalte sozinho é uma casca oca; dentina sozinha
+  mostra a polpa vazia. `MOTION.md` 4B.
+- **3D mais leve.** Parado, não desenha nada (era 60 quadros por segundo da
+  mesma imagem); pixel ratio no máximo 1,5.
+- **Fenda do esmalte** trocou `clip-path` por duas tiras que encolhem por
+  `transform` — sai da main thread. **Cursor** para de se reposicionar
+  quando alcança o ponteiro.
+- **Vinheta de entrada**, só no desktop (`MOTION.md` 13): no celular ela
+  custava uns 4 pontos de Lighthouse, medido em A/B.
+- **Encerramento**: a página sobe e descobre, por baixo, uma faixa verde com
+  a marca gigante se montando (`MOTION.md` 14). A primeira versão, que só
+  animava a marca ao entrar na tela, passava rápido demais e foi refeita.
+- **Barra de rolagem** no idioma da página (`MOTION.md` 15).
+
+**Um defeito invisível encontrado no caminho:** um caractere de controle
+(backspace, 0x08) entrou no `marca.ts` por um script de edição meu e quebrou
+o build — na tela a linha parecia certa. Varredura feita em `src/`,
+`scripts/` e documentos: nenhum outro.
+
+**Sobre medir o Lighthouse nesta máquina:** a nota acompanha o índice de CPU
+que ele mesmo mede. Com o computador ocupado (40–55% de CPU, índice
+1.200–1.700) o mobile fica entre 86 e 90; com ele livre (índice ~2.000),
+93 em três rodadas seguidas. Para uma medida de referência, rode com o
+computador sem outros programas pesados, ou use o PageSpeed Insights depois
+de publicar.
 
 ---
 

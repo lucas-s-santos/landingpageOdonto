@@ -41,4 +41,71 @@
       height: 46vh;
     }
   }
+
+  /* --- a fenda que abre ---------------------------------------------------
+     Presa à rolagem (MOTION.md §11). A faixa entra como uma fenda horizontal
+     e abre até o bloco inteiro enquanto sobe pela tela: é a transição entre
+     a seção mais densa (tratamentos) e a de pessoas.
+
+     DUAS TIRAS DA COR DO FUNDO, uma em cima e outra embaixo, que recolhem
+     por `transform`. Era `clip-path` no contêiner — e `clip-path` repinta o
+     bloco do vídeo inteiro a cada quadro de rolagem, na main thread. Foi o
+     mesmo motivo que derrubou a cortina da abertura no Lighthouse. Tira que
+     encolhe roda no compositor, e por cima do vídeo, sem disputar com o
+     parallax do GSAP que move o vídeo por dentro.
+
+     A fenda é reta e sem degradê — gradiente como decoração é o item 3 da
+     seção 9 do BRIEF. Sem movimento, as tiras nem existem. */
+  .textura {
+    position: relative;
+  }
+
+  .textura::before,
+  .textura::after {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    height: 38%;
+    background: var(--color-osso);
+    transform: scaleY(0);
+    pointer-events: none;
+  }
+
+  .textura::before {
+    top: 0;
+    transform-origin: 50% 0;
+  }
+
+  .textura::after {
+    bottom: 0;
+    transform-origin: 50% 100%;
+  }
+
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .textura {
+        view-timeline: --fenda block;
+      }
+
+      .textura::before,
+      .textura::after {
+        /* Propriedades separadas, não o atalho `animation:` — ver o aviso
+           em ComoAtendemos.astro. */
+        animation-name: recolher-tira;
+        animation-timing-function: linear;
+        animation-fill-mode: both;
+        animation-timeline: --fenda;
+        animation-range: entry 25% cover 55%;
+      }
+    }
+  }
+
+  @keyframes recolher-tira {
+    from {
+      transform: scaleY(1);
+    }
+    to {
+      transform: scaleY(0);
+    }
+  }
 </style>

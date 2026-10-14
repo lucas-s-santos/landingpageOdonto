@@ -12,6 +12,13 @@ o tell número um de página gerada por IA — não use em lugar nenhum.
 Se estiver em dúvida se um movimento entra: ele responde a algo que a pessoa fez? Entra.
 Ele acontece sozinho? Provavelmente sai.
 
+**Rolar é algo que a pessoa faz** (acrescentado em 14/10/2026). Movimento *preso* à
+rolagem — a posição do scroll é a posição da animação, para quando ela para e volta
+quando ela volta — pertence à primeira família. Movimento *disparado* pela rolagem —
+entra na tela e anima sozinho, uma vez — continua na segunda, e continua proibido.
+Cada movimento preso à rolagem carrega informação da seção, e é no máximo um por
+seção. Os seis estão na seção 11.
+
 ---
 
 ## 0. Base
@@ -85,21 +92,51 @@ menu vira ruído.
 
 ## 3. Abertura — o único momento automático
 
-Roda uma vez, no load, depois nunca mais.
+Roda uma vez, no load, depois nunca mais. Em CSS, não GSAP: roda fora da main thread e
+continua suave enquanto o resto baixa (em GSAP custava 5,2 s de bootup no perfil mobile).
+Revisada em 14/10/2026 para a abertura ocupar a primeira tela e ganhar o rótulo.
 
 ```
-0.0s  vídeo entra com scale 1.06 → 1.00, 1.6s power2.out
-0.2s  linhas do título sobem por máscara (overflow hidden + yPercent 100 → 0)
-      stagger 0.09, duração 0.9, ease 'expo.out'
-0.7s  linha de apoio, fade curto
-0.9s  CTA aparece com scale 0.96 → 1
+0.00s  a cena abre como cortina, da direita para a esquerda
+       clip-path inset(0 0 0 100%) → inset(0), 1.3s ease-entra-sai
+0.00s  o vídeo assenta de scale 1.06 → 1, 1.6s
+0.20s  linhas do título sobem por máscara (overflow hidden + translateY 100% → 0)
+       90 ms entre elas, 0.9s, ease-saida
+0.70s  linha de apoio, fade curto
+0.90s  CTA aparece com scale 0.96 → 1
+1.10s  aberta / fechada, embaixo do CTA
+1.25s  um ponto acende na coroa do dente
+1.40s  o fio corre na horizontal até o canto
+1.80s  o fio desce
+2.05s  o rótulo ("Esmalte") aparece por máscara
 ```
 
 Máscara de linha, não `opacity: 0 → 1` com `translateY(30px)`. A diferença entre parecer
 caro e parecer template está exatamente aí.
 
-No scroll da abertura: o vídeo sobe a `yPercent: 12` enquanto o título sobe a
-`yPercent: 40`, com `scrub: true`. Velocidades diferentes = profundidade.
+**O rótulo vem por último de propósito:** primeiro a promessa (o título diz que a gente
+explica), depois a prova (a página já explicando uma parte do dente). É a linguagem da
+seção 3 aparecendo no topo.
+
+**O ponto fica preso ao QUADRO do vídeo**, não à tela. O vídeo cobre a cena com
+`object-fit: cover`, então a posição sai da mesma conta que o navegador faz para o cover,
+em unidades de contêiner: `escala = max(100cqw / 1280, 100cqh / 720)`, e o ponto da coroa
+(600, 250 no quadro de 1280×720) cai em `50cqw + (600 − 640) · escala`,
+`50cqh + (250 − 360) · escala`. Trocou o vídeo, mede de novo o ponto.
+
+**Mouse, no desktop** (movimento por ação, `movimento.ts`): a cena anda até 14px na
+direção oposta ao cursor e o título até 4px a favor — dois planos em velocidades
+diferentes. A cena é 16px maior que a moldura de cada lado, então o curso nunca abre
+fresta. `gsap.quickTo`, 1.1s power3.out.
+
+**No scroll**: o vídeo desce a `yPercent: 12` enquanto o texto sobe a `yPercent: -10`, com
+`scrub: true` (GSAP, desktop). Era `yPercent: 40` no texto: ele descia atrasado e, com a
+abertura ocupando a tela inteira, o botão passava por cima do título da seção 2 (91px em
+1280×720). `npm run motion` mede em 1280×720, 1024×768 e 1093×614. E, presos à rolagem em CSS, a câmera chega perto e o rótulo
+se apaga (seção 11.1).
+
+Sem efeito de fundo. Aurora, partícula e gradiente animado são o item 3 da seção 9 do
+BRIEF; o que faz o topo ser vivo é ele já estar explicando alguma coisa.
 
 ## 4. Dente 3D — rotação presa ao scroll
 
@@ -161,6 +198,44 @@ lê o quarto rótulo.
 
 Arraste com o mouse também gira, somando à rotação do scroll. Ao soltar, a rotação
 manual volta a zero por interpolação no laço, em ~1.2s.
+
+## 4B. Ver por dentro (acrescentado em 14/10/2026)
+
+Escolher uma parte — pela fileira de botões "Ver por dentro", pelo marcador, pelo título
+na lista ou tocando no próprio dente — **corta o modelo ao meio**, como a prancha de um
+livro de anatomia. Movimento por ação da pessoa.
+
+- **O corte** é um plano de recorte fixo no mundo, de frente para a câmera
+  (`clippingPlanes`). A constante dele caminha de 0,65 (nada cortado) a 0 (ao meio) com
+  `lerp(0.075)` e `smoothstep`: o plano atravessa o dente de frente para trás.
+- **O miolo** aparece porque o shader pinta o lado de dentro das faces com cor chapada —
+  esmalte branco-frio, dentina marfim, polpa rosada. Cortada, a malha lê como maciça.
+- **As camadas internas** são cópias reduzidas das partes do GLB: dentina = coroa a 80%,
+  câmara da polpa = coroa a 42%, canais = raízes afinadas a 28%. Ilustração, não tomografia.
+- **Ao cortar**, o dente vira de frente e para de girar com o scroll (o corte só lê de
+  frente); a câmera chega perto da parte escolhida (`FOCO` em `dente3d.ts`); a camada
+  escolhida acende e as outras vão 70% para um cinza-sálvia, guardando 30% da cor.
+- **Os marcadores** vão para cima do corte, na camada que nomeiam, interpolando com o corte.
+- **Tocar no dente**: toque curto (< 8px, < 450ms) lança um raio e escolhe a parte
+  atingida, ignorando o que o plano cortou. Com mouse, a parte sob o cursor se ilumina.
+- **"Inteiro"** fecha o corte e devolve a rotação ao scroll.
+- **Só o que foi escolhido** (acrescentado depois, no mesmo dia): ao escolher, a parte fica
+  sólida e cortada, o resto do dente vira fantasma a 7% — só o contorno de fora — e as
+  camadas de dentro que não são a escolhida somem. Uma terceira condição, **oca**, não
+  desenha cor mas ocupa a profundidade: é o que faz o esmalte sozinho aparecer como casca
+  oca, e a dentina sozinha com a polpa vazia dentro. Os marcadores e fios das outras partes
+  saem. Os materiais desenham numa passada só (`forceSinglePass`): com duas, o miolo saía
+  iluminado durante toda a troca e só virava corte no último quadro.
+- **Parado, não desenha.** O laço só chama o render quando algo está se movendo (scroll,
+  corte, arraste, opacidade, mouse). Antes redesenhava 60 vezes por segundo a mesma imagem.
+  `npm run dente` mede: zero chamadas de desenho com a cena quieta. Pixel ratio no máximo
+  1,5.
+
+Três correções de modelo feitas em código, medidas: o colo do GLB vem com as faces
+viradas para dentro (aparecia como faixa bege chapada — `orientarParaFora` desvira pelo
+volume com sinal); as partes têm tampas planas nas junções que, no corte, viravam uma
+lâmina escura (`tirarTampa`); e o GLB não traz normais (`mergeVertices` +
+`computeVertexNormals`).
 
 ## 5. Prancha anatômica — a cascata
 
@@ -225,6 +300,7 @@ gsap.from(linhas, {
 ## 9. Mobile
 
 Desligado: cursor, ímã, parallax, scroll suave do Lenis, pin da seção do dente.
+Ligado também no celular: os momentos presos à rolagem da seção 11, que são CSS puro.
 Mantido: abertura, máscara nos títulos, expandir tratamento, dente girando por arraste
 do dedo (sem pin — a seção rola normal e o dente gira com `IntersectionObserver` +
 progresso simples).
@@ -241,3 +317,159 @@ O 3D no mobile roda com `powerPreference: 'low-power'`, `antialias: false`,
 - [ ] 60fps no scroll em um celular intermediário
 - [ ] Three.js não está no bundle inicial
 - [ ] Nada anima `top`, `left`, `width` ou `height` fora do accordion; só transform e opacity
+
+## 11. Presos à rolagem (acrescentado em 14/10/2026)
+
+Origem: `PLANO-V2.md`. A regra está no topo deste arquivo: rolar é algo que a pessoa
+faz, então movimento **preso** à rolagem é resposta. Cada um carrega informação da seção,
+no máximo um por seção.
+
+**Tecnologia: CSS scroll-driven animations** (`animation-timeline: view()`), não GSAP. Roda
+no compositor, custa 0 KB de JavaScript, e por isso roda no celular — o caminho de onde o
+GSAP foi tirado (seção 9). Chrome, Edge, Samsung Internet e Safari 26+. Onde não há
+suporte, a página fica como sob reduced-motion: completa e parada.
+
+Toda regra fica dentro de:
+
+```css
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) { ... }
+}
+```
+
+O `@media` não é redundante. A regra global de reduced-motion (`tokens.css`) só zera
+**duração**, e animação de rolagem ignora duração: sem o `@media`, ela continuaria
+rodando para quem pediu movimento reduzido.
+
+**Nunca o atalho `animation:` junto com `animation-timeline`.** Escreva as propriedades
+separadas (`animation-name`, `-timing-function`, `-fill-mode`, `-timeline`, `-range`). O
+minificador do build junta tudo num atalho só, o Chrome descarta esse atalho e a animação
+morre sem erro. Medido no Chrome 151: cinco dos seis momentos saíam `animation: none`.
+`npm run motion` confere cada um vivo, ligado a uma `ViewTimeline`.
+
+### 11.1 Abertura — a câmera chega perto (`Abertura.astro`)
+
+`scale` 1 → 1,12 no vídeo, dentro da moldura, enquanto a abertura sai pelo topo
+(`exit-crossing 0%` → `100%`). O rótulo da coroa vai de opacidade 1 a 0 no primeiro terço
+desse trecho: depois disso o vídeo já aproximou e o ponto não está mais sobre a coroa. Anima `scale`, não `transform`: são propriedades que se
+compõem, e o `transform` continua livre para a entrada (`aproximar`) e para o parallax do
+GSAP. Se fosse `transform`, a animação de CSS venceria o estilo em linha do GSAP.
+
+### 11.2 Como atendemos — a frase acende (`ComoAtendemos.astro`)
+
+A frase de fecho em tamanho de título. Cada palavra vai de opacidade 0,55 a 1 numa fatia
+igual do trecho `cover 30%` → `cover 55%` da frase, ou seja, enquanto o topo dela passa de
+65% a 35% da altura da janela. Apagada, dá **3,55:1** — AA para texto grande, e a frase
+tem no mínimo 29,6px. As palavras são `<span>` em linha, sem papel: leitor de tela lê a
+frase inteira.
+
+### 11.3 Faixa de esmalte — a fenda abre (`TexturaEsmalte.astro`)
+
+`clip-path: inset(38% 0)` → `inset(0)`, de `entry 25%` a `cover 55%`. No contêiner, não no
+vídeo, que o GSAP move por dentro no desktop. O de menor valor dos seis.
+
+### 11.4 Estrutura — as pranchas da esterilização empilham (`Estrutura.astro`)
+
+Cinco pranchas `position: sticky` com `top: topo + i · degrau` (degrau 3,5rem no desktop,
+3rem no celular). A aba de cada uma tem a altura do degrau e fica visível em cima da
+seguinte, com o número.
+
+- **Recuo:** cada prancha vai a `scale: 0.98 − (n − i − 1) · 0.012`, guiada pela linha do
+  tempo da prancha SEGUINTE (`timeline-scope` no pai), de `cover 0%` até
+  `cover calc(100vh − topo − (i + 1) · degrau)` — o trecho exato em que a seguinte sobe e
+  gruda.
+- **Lista em flex, não grid.** Em grid, o bloco que contém o item é a área dele na grade, e
+  o sticky só grudaria dentro da própria linha.
+- **Saída junta.** Margem de baixo `folga + (n − 1 − i) · degrau`. Com margem igual, a
+  última prancha soltava primeiro e deixava à mostra o miolo da anterior. Topo + margem
+  igual para todas faz a pilha sair inteira. `npm run motion` percorre a lista e mede.
+- **Só com `min-height: 700px`**, e sem reduced-motion. Fora disso é uma lista comum.
+
+### 11.5 Primeira consulta — o fio e o relógio (`PrimeiraConsulta.astro`)
+
+Uma régua para os três: a **altura de leitura**, 55% da janela a partir do topo.
+
+- O fio (`.etapas::before`) vai de `scale: 1 0` a `1 1` de `cover 45vh` a
+  `cover calc(100% − 55vh)` — do topo da lista cruzando a altura de leitura até o fim dela
+  cruzar.
+- Cada número e cada marca acendem quando o próprio topo cruza a mesma altura.
+- O relógio conta `--minuto`, registrada com `@property` como `<integer>` para interpolar
+  de 1 em 1. Os quadros-chave saem do `conteudo.ts`: cada etapa ocupa uma fatia igual do
+  trecho, e dentro dela o relógio anda os minutos daquela etapa. `aria-hidden`; o total em
+  texto continua embaixo da lista. No desktop ele fica parado na altura de leitura, na
+  margem direita; no celular gruda no topo da lista.
+
+## 12. O menu de dúvidas (acrescentado em 14/10/2026)
+
+`Indice.astro`. O menu lista as **dúvidas de quem visita**, não as seções da clínica —
+a página está na ordem das objeções (BRIEF seção 4), então cada pergunta leva à parte que
+responde. O fio que liga a pergunta ao lugar é o fio da prancha.
+
+Movimento por ação da pessoa, todo em CSS:
+
+- **A folha entra pela esquerda**, `translateX(-100%) → 0`, 0.55s ease-entra-sai, com
+  `@starting-style` para o estado de partida e `allow-discrete` em `display` e `overlay`
+  para a saída também animar.
+- **As perguntas sobem pela máscara**, 60 ms entre elas a partir de 0.18s — o gesto dos
+  títulos de seção. Animação em `translate` e `clip-path`, nunca transição no `transform`:
+  o hover usa o `transform`, e uma transição com atraso escalonado atrasaria o hover junto.
+- **O fio corre** de `scale: 0` ao comprimento de repouso. No hover e no foco ele vai até o
+  nome da seção; na seção que a pessoa está lendo (`aria-current="location"`) ele já fica
+  inteiro. No toque (`hover: none`) fica sempre inteiro — sem hover, o fio curto deixava o
+  nome da seção solto do outro lado.
+
+`<dialog>` com `showModal()`: foco preso, Esc e devolução de foco ficam com o navegador.
+Clicar numa dúvida fecha, rola até o título (pelo Lenis, quando ele existe — por isso
+`window.__lenis`) e leva o foco ao título. Dois defeitos medidos e corrigidos no caminho:
+
+- o evento `close` chega numa tarefa à parte; até lá o Lenis seguia parado e a rolagem era
+  ignorada. Destrava na hora, no próprio clique;
+- o título chegava invisível no celular. `.revela` recorta o título por inteiro, e o Chrome
+  calcula a interseção do observador sobre a área recortada — uma linha de altura zero, que
+  um salto de âncora podia deixar 0,07px acima da tela, para sempre fora. O observador
+  agora olha o PAI do título (`movimento.ts`), e isso vale para qualquer âncora, não só
+  para o menu.
+
+## 13. A entrada, só no desktop (acrescentado em 14/10/2026)
+
+`Entrada.astro`, só na demo. A marca sobe numa folha de osso, o ponto acende, o fio corre,
+e a folha sobe como cortina (0,95s a 1,7s) com o fio de 1px na borda de baixo varrendo a
+tela. A abertura **não espera**: anima por baixo desde o primeiro quadro, então o LCP não
+atrasa.
+
+Ponto e fio são HTML por cima do SVG das letras, nas posições lidas da marca
+(`PARTES_DA_MARCA` em `src/data/marca.ts`). Animar o círculo e o retângulo dentro do SVG
+não ia para o compositor.
+
+**Só a partir de 900px.** Teste A/B alternado, mesmas condições: com a vinheta o
+Lighthouse mobile deu 89, 83 e 88; sem, 92, 90 e 90. No celular a página abre direto.
+
+## 14. O encerramento (acrescentado em 14/10/2026, refeito no mesmo dia)
+
+`Fecho.astro`, só na demo. **A página sobe e descobre o rodapé por baixo.** O conteúdo
+inteiro está num invólucro opaco (`.pagina`, em `index.astro`) por cima de uma faixa
+eucalipto parada no pé da janela (`position: sticky; bottom: 0`, embaixo). No fim da
+rolagem a folha sobe e a faixa aparece, com a marca em tamanho de parede se montando:
+a marca inteira chega de mais longe (`translateY(18%) scale(0.9)` → nada), as três letras
+sobem pela borda do SVG uma depois da outra, o ponto acende, o fio — elemento HTML à parte,
+posicionado pela geometria da marca — corre até a borda da janela, e o crédito aparece.
+
+Linha do tempo: `scroll(root)`, no trecho `calc(100% - altura da faixa)` → `100%` — ou
+seja, ocupa uma altura de janela inteira de rolagem (~550px).
+
+**A primeira versão foi descartada:** animava a marca ao *entrar* na tela, em ~300px de
+rolagem bem no fim, e passava rápido demais para ser notada.
+
+As classes se chamam `encerramento`, não `fecho`: a frase de fecho da seção 2 já usa esse
+nome. Sem movimento, a faixa é um bloco comum no fim. Sem suporte a animação por rolagem
+(Firefox), a revelação por baixo continua — é só `sticky` — e a marca já vem inteira.
+
+## 15. A barra de rolagem (acrescentado em 14/10/2026)
+
+O trilho é o fio de 1px da prancha, no meio de uma faixa de osso; o traço de arrastar é
+eucalipto, 6px dentro de um alvo de 14px, raio zero. Sob o mouse escurece para tinta e
+engrossa. Chrome, Edge e Safari por `::-webkit-scrollbar`; Firefox por `scrollbar-color`,
+só dentro de `@supports not selector(::-webkit-scrollbar)` — no Chrome, declarar
+`scrollbar-color` desliga o desenho inteiro. Dentro do menu de dúvidas, que é eucalipto, a
+barra inverte. Seleção de texto em eucalipto e osso.
+

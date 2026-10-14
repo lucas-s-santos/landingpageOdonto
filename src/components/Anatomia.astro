@@ -36,7 +36,7 @@ const nomeDoTratamento = (id: string) => TRATAMENTOS.find((t) => t.id === id)?.n
         o lugar errado assim que a tela mudasse de tamanho. */}
     <svg class="prancha__fios" aria-hidden="true" data-fios></svg>
 
-    <figure class="prancha__figura col-span-full md:col-span-6 md:col-start-2">
+    <figure class="prancha__figura col-span-full md:col-span-7">
       <div class="prancha__palco sobre-claro" data-palco>
         <picture>
           <source srcset="/image/anatomia-molar.webp" type="image/webp" />
@@ -56,6 +56,17 @@ const nomeDoTratamento = (id: string) => TRATAMENTOS.find((t) => t.id === id)?.n
             modelo carregou — antes disso a imagem segura o lugar. */}
         <canvas class="prancha__canvas" data-canvas hidden></canvas>
 
+        {/*
+          Os marcadores sobre o modelo. Atalho de ponteiro: quem usa teclado
+          ou leitor de tela escolhe pela fileira "Ver por dentro" logo
+          abaixo, que tem o nome escrito. Por isso `aria-hidden` e fora do
+          Tab — dois controles para a mesma coisa, ditos duas vezes, só
+          atrapalham quem navega sem enxergar.
+
+          Nascem escondidos: sem o 3D, um ponto que não faz nada ao ser
+          clicado é pior que ponto nenhum. A lista ao lado já explica as
+          quatro regiões.
+        */}
         {ANATOMIA.partes.map((p) => (
           <button
             type="button"
@@ -63,10 +74,45 @@ const nomeDoTratamento = (id: string) => TRATAMENTOS.find((t) => t.id === id)?.n
             style={`left:${p.x}%;top:${p.y}%`}
             data-hotspot={p.id}
             aria-pressed="false"
+            aria-hidden="true"
+            tabindex="-1"
+            hidden
           >
-            <span class="sr-apenas">Ver {p.rotulo.toLowerCase()} no modelo</span>
+            <span class="hotspot__nome">{p.rotulo}</span>
           </button>
         ))}
+
+      </div>
+
+      {/*
+        O que está aceso, em uma frase. Muda a cada escolha.
+
+        FORA do palco, de propósito. Dentro, no pé dele, a frase ficava por
+        cima das raízes quando a câmera chegava perto da coroa — texto
+        passando por cima do modelo, no celular e no desktop.
+      */}
+      <p class="prancha__estado" data-estado-corte aria-live="polite" hidden>
+        {ANATOMIA.legendaInteiro}
+      </p>
+
+      {/*
+        VER POR DENTRO. Os controles de verdade — botões com o nome da parte,
+        alcançáveis por Tab, com `aria-pressed`. Escolher corta o modelo ao
+        meio e acende a camada. "Inteiro" fecha o corte.
+        Nascem escondidos e só aparecem quando o 3D monta.
+      */}
+      <div class="prancha__controles" data-controles role="group" aria-label={ANATOMIA.verPorDentro} hidden>
+        <p class="prancha__controles-titulo" aria-hidden="true">{ANATOMIA.verPorDentro}</p>
+        <div class="prancha__botoes">
+          {ANATOMIA.partes.map((p) => (
+            <button type="button" class="prancha__botao" data-ver={p.id} data-corte={p.corte} aria-pressed="false">
+              {p.rotulo}
+            </button>
+          ))}
+          <button type="button" class="prancha__botao prancha__botao--inteiro" data-ver="" aria-pressed="true">
+            {ANATOMIA.inteiro}
+          </button>
+        </div>
       </div>
 
       <figcaption class="text-rotulo mt-4 opacity-70" data-legenda>
@@ -74,7 +120,7 @@ const nomeDoTratamento = (id: string) => TRATAMENTOS.find((t) => t.id === id)?.n
       </figcaption>
     </figure>
 
-    <div class="prancha__rotulos col-span-full mt-10 md:col-span-4 md:mt-0">
+    <div class="prancha__rotulos col-span-full mt-10 md:col-span-4 md:col-start-9 md:mt-0">
       <dl class="prancha__lista">
         {ANATOMIA.partes.map((p) => (
           <div class="prancha__item" data-parte={p.id}>
@@ -122,13 +168,23 @@ const nomeDoTratamento = (id: string) => TRATAMENTOS.find((t) => t.id === id)?.n
      foi testada e descartada: come o dente junto com o fundo, porque os dois
      têm luminância parecida. A saída é assumir a imagem como PRANCHA
      MONTADA — painel claro com fio de 1px sobre o verde. */
+  /* O PALCO. Era um quadro de 420px; o dente ficava pequeno demais para
+     ser o elemento-assinatura da página. Agora ocupa a coluna inteira e
+     quase a altura da janela. A altura é fixa e a largura é a da coluna:
+     o canvas acompanha, e a imagem estática se ajusta por `contain`. */
   .prancha__palco {
     position: relative;
-    max-width: 420px;
-    aspect-ratio: 520 / 650;
+    height: clamp(380px, 60svh, 520px);
     background: var(--color-osso);
     border: 1px solid color-mix(in srgb, var(--color-linha) 55%, transparent);
     padding: 1.25rem;
+    overflow: hidden;
+  }
+
+  @media (min-width: 768px) {
+    .prancha__palco {
+      height: clamp(460px, 68vh, 720px);
+    }
   }
 
   /* A figura acompanha a leitura dos rótulos, em vez de subir junto.
@@ -146,9 +202,85 @@ const nomeDoTratamento = (id: string) => TRATAMENTOS.find((t) => t.id === id)?.n
   @media (min-width: 768px) {
     .prancha__figura {
       position: sticky;
-      top: clamp(1.5rem, calc((100vh - 36rem) / 2), 6rem);
+      top: clamp(1rem, calc((100vh - 68vh - 7rem) / 2), 4rem);
       align-self: start;
     }
+  }
+
+  /* --- o que está aceso ------------------------------------------------
+     Uma frase logo abaixo do palco, em osso sobre o eucalipto (8,6:1).
+     Altura mínima de duas linhas: a frase muda de tamanho a cada escolha,
+     e sem a reserva os botões abaixo pulariam junto. */
+  .prancha__estado {
+    min-height: 2.8em;
+    margin: 0.9rem 0 0;
+    max-width: 52ch;
+    color: var(--color-osso);
+    font-size: 0.9375rem;
+    line-height: 1.4;
+  }
+
+  .prancha__estado[hidden] {
+    display: none;
+  }
+
+  /* --- ver por dentro ---------------------------------------------------
+     Fileira de botões de texto, separados por fio de 1px — a mesma régua
+     da lista de tratamentos, em vez de pílulas coloridas. */
+  .prancha__controles {
+    margin-top: 0.75rem;
+  }
+
+  .prancha__controles-titulo {
+    margin: 0 0 0.5rem;
+    font-size: var(--text-rotulo);
+    color: var(--color-osso-suave);
+  }
+
+  .prancha__botoes {
+    display: flex;
+    flex-wrap: wrap;
+    border-top: 1px solid color-mix(in srgb, var(--color-linha) 45%, transparent);
+    border-left: 1px solid color-mix(in srgb, var(--color-linha) 45%, transparent);
+  }
+
+  .prancha__botao {
+    flex: 1 1 auto;
+    min-height: 48px;
+    padding: 0.6rem 1rem;
+    background: none;
+    border: 0;
+    border-right: 1px solid color-mix(in srgb, var(--color-linha) 45%, transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--color-linha) 45%, transparent);
+    color: var(--color-osso);
+    font: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    transition:
+      background-color var(--tempo-hover) var(--ease-saida),
+      color var(--tempo-hover) var(--ease-saida);
+  }
+
+  /* A parte acesa: osso cheio, tinta por cima. 13,6:1. */
+  .prancha__botao[aria-pressed='true'] {
+    background: var(--color-osso);
+    color: var(--color-tinta);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .prancha__botao:not([aria-pressed='true']):hover {
+      background: color-mix(in srgb, var(--color-osso) 12%, transparent);
+    }
+  }
+
+  .prancha__botao--inteiro {
+    font-weight: 400;
+  }
+
+  /* Na lista ao lado, o título de cada parte também escolhe — atalho de
+     ponteiro, só quando o 3D está montado. */
+  .prancha[data-3d-pronto] .prancha__item dt {
+    cursor: pointer;
   }
 
   .prancha__estatica,
@@ -178,6 +310,10 @@ const nomeDoTratamento = (id: string) => TRATAMENTOS.find((t) => t.id === id)?.n
      Botão de verdade. 44px de alvo de toque, com o ponto visível de 14px
      desenhado no ::before — assim o alvo é confortável sem que a bolinha
      fique enorme. */
+  /* --- o marcador -------------------------------------------------------
+     Um anel de 1px em volta do ponto âmbar, e o nome da parte escrito ao
+     lado — como a etiqueta de uma prancha, não um alfinete de mapa.
+     44px de alvo de toque; o desenho mora nos pseudo-elementos. */
   .hotspot {
     position: absolute;
     width: 44px;
@@ -188,36 +324,104 @@ const nomeDoTratamento = (id: string) => TRATAMENTOS.find((t) => t.id === id)?.n
     background: none;
     cursor: pointer;
     z-index: 3;
+    transition: opacity 0.4s var(--ease-saida);
   }
 
-  .hotspot::before {
+  .hotspot[hidden] {
+    display: none;
+  }
+
+  /* o anel */
+  .hotspot::after {
     content: '';
     position: absolute;
     inset: 50%;
-    width: 14px;
-    height: 14px;
-    margin: -7px 0 0 -7px;
+    width: 26px;
+    height: 26px;
+    margin: -13px 0 0 -13px;
     border-radius: 50%;
-    background: var(--color-ambar);
-    border: 2px solid var(--color-osso);
-    box-sizing: border-box;
+    border: 1px solid var(--color-tinta);
     transition:
       transform var(--tempo-hover) var(--ease-saida),
       border-color var(--tempo-hover) var(--ease-saida);
   }
 
-  @media (hover: hover) and (pointer: fine) {
-    .hotspot:hover::before {
-      transform: scale(1.4);
+  /* o ponto */
+  .hotspot::before {
+    content: '';
+    position: absolute;
+    inset: 50%;
+    width: 10px;
+    height: 10px;
+    margin: -5px 0 0 -5px;
+    border-radius: 50%;
+    background: var(--color-ambar);
+    transition: transform var(--tempo-hover) var(--ease-saida);
+  }
+
+  /* O nome, à direita do anel, sobre uma tira de osso: legível em cima do
+     dente claro e da sombra. No desktop aparece no hover e na parte acesa;
+     no celular, onde não há fio até a lista, fica sempre. */
+  .hotspot__nome {
+    position: absolute;
+    left: 36px;
+    top: 50%;
+    translate: 0 -50%;
+    padding: 0.15rem 0.45rem;
+    background: var(--color-osso);
+    color: var(--color-tinta);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    line-height: 1.3;
+    white-space: nowrap;
+    pointer-events: none;
+    transition:
+      opacity var(--tempo-hover) var(--ease-saida),
+      translate var(--tempo-hover) var(--ease-saida);
+  }
+
+  /* Perto da borda direita do palco, o nome vai para a esquerda do anel. */
+  .hotspot--esquerda .hotspot__nome {
+    left: auto;
+    right: 36px;
+  }
+
+  @media (hover: hover) and (pointer: fine) and (min-width: 900px) {
+    .hotspot__nome {
+      opacity: 0;
+      translate: -4px -50%;
+    }
+
+    .hotspot:hover .hotspot__nome,
+    .hotspot[aria-pressed='true'] .hotspot__nome {
+      opacity: 1;
+      translate: 0 -50%;
+    }
+
+    .hotspot:hover::after {
+      transform: scale(1.35);
     }
   }
 
   /* Estado ativo com TRÊS sinais, não um: o âmbar sozinho dá 3,1:1 contra o
      eucalipto — passa como componente gráfico, mas é pouco para carregar a
-     informação sozinho. Ver PLANO-DESIGN.md seção 2. */
-  .hotspot[aria-pressed='true']::before {
-    transform: scale(1.5);
+     informação sozinho. Anel âmbar maior, ponto maior, nome visível. */
+  .hotspot[aria-pressed='true']::after {
+    transform: scale(1.45);
     border-color: var(--color-ambar);
+    border-width: 2px;
+  }
+
+  .hotspot[aria-pressed='true']::before {
+    transform: scale(1.3);
+  }
+
+  /* Com uma parte escolhida, os marcadores das outras saem — o resto do
+     dente virou fantasma. (O JavaScript faz o mesmo no estilo em linha; isto
+     cobre o instante antes do primeiro quadro.) */
+  .prancha[data-ativa] .hotspot[aria-pressed='false'] {
+    opacity: 0;
+    pointer-events: none;
   }
 
   .prancha__lista {
@@ -267,7 +471,11 @@ const nomeDoTratamento = (id: string) => TRATAMENTOS.find((t) => t.id === id)?.n
   }
 
   @media (prefers-reduced-motion: reduce) {
+    .hotspot,
     .hotspot::before,
+    .hotspot::after,
+    .hotspot__nome,
+    .prancha__botao,
     .prancha__marca,
     .prancha__estatica,
     .prancha__item {

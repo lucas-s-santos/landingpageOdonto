@@ -92,6 +92,11 @@ Cada seção existe pra vencer uma objeção específica. A ordem é a ordem da 
 **Regra do CTA:** um único CTA em toda a página — *Agendar avaliação*. Mesmo verbo,
 mesma cor, sempre. Sem CTA secundário competindo.
 
+**Menu** (acrescentado em 14/10/2026): lista as dúvidas de quem visita, na voz dela
+("Vão me julgar por ter demorado?", "É limpo? É seguro?"), e cada uma leva à seção que
+responde. Não lista as seções pelo nome que a clínica dá a elas. Fica de fora "como eu
+marco?": a resposta é o CTA, e um segundo caminho com outro verbo é CTA secundário.
+
 **Como o CTA funciona:** o formulário é o atrito. A visitante não preenche formulário,
 ela manda mensagem. Então:
 
@@ -176,9 +181,17 @@ automático da página.
 - Hotspot do dente acende no hover, gira a câmera ao clicar
 - Rotação do dente ligada ao scroll, não em loop automático
 
+**Movimento preso à rolagem** (acrescentado em 14/10/2026, ver `PLANO-V2.md`): quando a
+posição do scroll *é* a posição da animação — para quando a pessoa para, volta quando
+ela volta —, o movimento conta como ação da pessoa, pelo mesmo critério que justifica o
+dente girar com o scroll. Duas travas: ele tem que carregar informação da seção (sem o
+movimento, a seção perde algo além do enfeite) e é no máximo um por seção. O dente
+continua sendo o ponto mais alto da página.
+
 **Proibido:** fade-and-slide-up genérico em cada seção que entra na viewport. Esse é o
 tell número um. Se um elemento precisa aparecer, que seja por máscara de linha em
-títulos, e só nos títulos de seção.
+títulos, e só nos títulos de seção. A regra acima não abre exceção a isto: o que anima
+sozinho ao entrar na tela, uma vez, continua proibido.
 
 **Obrigatório:** `prefers-reduced-motion` desliga tudo e mostra conteúdo estático.
 No mobile, cursor e ímã desligados; mantém expandir/recolher e o dente.

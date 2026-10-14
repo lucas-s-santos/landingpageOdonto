@@ -1,5 +1,7 @@
 ---
-import { CLINICA, CTA } from '../data/conteudo';
+import { CLINICA, CTA, EH_DEMO } from '../data/conteudo';
+import { ASSINATURA } from '../data/marca';
+import Indice from './Indice.astro';
 
 interface Props {
   /**
@@ -19,12 +21,58 @@ const { destinoCta = '#agendar' } = Astro.props;
 <!-- Header estático, não fixo. Sem fundo próprio, sem borda: ele é parte da
      folha, não uma barra por cima dela. O CTA aqui é o MESMO CTA da página —
      mesmo verbo, mesma cor, mesmo destino. Não é CTA secundário. -->
-<header class="grade items-baseline pt-8 pb-4">
-  <p class="col-span-8 font-display text-tratamento font-medium sm:col-span-6">
-    {CLINICA.nome}
-  </p>
+<header class="grade items-center pt-6 pb-3">
+  {/*
+    Na demo, o cabeçalho leva a marca do produto — a página existe para
+    mostrar o Colo, e é ela que aparece em vídeo de divulgação. No site de
+    uma clínica, volta o nome da clínica. O rodapé continua com os dados da
+    clínica fictícia: é ali que se vê o responsável técnico e o CRO que a
+    CFO-196 exige, e isso também é parte do que se está vendendo.
+  */}
+  {
+    EH_DEMO ? (
+      <p class="col-span-6">
+        <a href="/" class="cabecalho__marca" aria-label="Colo, início" set:html={ASSINATURA} />
+      </p>
+    ) : (
+      <p class="col-span-6 font-display text-tratamento font-medium">{CLINICA.nome}</p>
+    )
+  }
 
-  <p class="col-span-4 justify-self-end sm:col-span-6">
-    <a href={destinoCta} class="cta cta--vazado">{CTA}</a>
-  </p>
+  {/*
+    À direita: o menu de dúvidas e o CTA.
+
+    Abaixo de 640px o CTA do cabeçalho sai. Ali ele quebrava em duas linhas
+    dentro da caixa ("Agendar / avaliação") e lia como defeito — visto no
+    screenshot de 390. O botão da abertura está na primeira tela, e a barra
+    fixa assume depois da seção 3. O menu fica: no celular é ele que leva
+    a quem chega pelo Instagram direto à dúvida que trouxe a pessoa.
+  */}
+  <div class="col-span-6 flex items-center justify-end gap-x-6">
+    <Indice base={destinoCta.startsWith('/') ? '/' : ''} />
+    <a href={destinoCta} class="cta cta--vazado max-sm:hidden">{CTA}</a>
+  </div>
 </header>
+
+<style>
+  /* A palavra na altura de um título pequeno. O SVG traz o próprio
+     `aria-label`; o link dá o nome "Colo, início" para quem navega por Tab. */
+  .cabecalho__marca {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: var(--color-eucalipto);
+  }
+
+  .cabecalho__marca :global(svg) {
+    display: block;
+    height: 1.3rem;
+    width: auto;
+  }
+
+  @media (min-width: 900px) {
+    .cabecalho__marca :global(svg) {
+      height: 1.55rem;
+    }
+  }
+</style>

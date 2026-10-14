@@ -1,7 +1,29 @@
 ---
 import { PRIMEIRA_CONSULTA } from '../data/conteudo';
 
-const total = PRIMEIRA_CONSULTA.etapas.reduce((s, e) => s + e.minutos, 0);
+const { etapas } = PRIMEIRA_CONSULTA;
+const total = etapas.reduce((s, e) => s + e.minutos, 0);
+
+/*
+  O relógio conta os minutos acumulados da consulta conforme a lista passa
+  pela altura de leitura. Cada etapa ocupa uma fatia igual do trecho de
+  rolagem, e dentro dela o relógio anda os minutos daquela etapa — então ele
+  acelera na etapa de 15 minutos e anda devagar na de 5.
+
+  Os quadros-chave saem dos dados: mudou uma duração no conteudo.ts, o
+  relógio acompanha. Por isso este bloco de CSS é gerado aqui e não escrito
+  à mão no <style>.
+*/
+let acumulado = 0;
+const quadros = [
+  '0% { --minuto: 0; }',
+  ...etapas.map((e, i) => {
+    acumulado += e.minutos;
+    const pct = (((i + 1) / etapas.length) * 100).toFixed(3);
+    return `${pct}% { --minuto: ${acumulado}; }`;
+  }),
+].join(' ');
+const cssRelogio = `@keyframes relogio-consulta { ${quadros} }`;
 ---
 
 {/*
@@ -9,8 +31,24 @@ const total = PRIMEIRA_CONSULTA.etapas.reduce((s, e) => s + e.minutos, 0);
   A seção mais subestimada e a que mais converte, segundo o BRIEF.
 
   A numeração aqui é legítima: o conteúdo É uma sequência cronológica. É a
-  única lista numerada da página — o item 13 da seção 9 proíbe 01/02/03 em
-  conteúdo que não é sequência.
+  única lista numerada da página além da cadeia de esterilização — o item
+  13 da seção 9 proíbe 01/02/03 em conteúdo que não é sequência.
+
+  Dois movimentos presos à rolagem, e os dois respondem à objeção da seção
+  ("quanto tempo?"):
+
+    O FIO — uma linha de 1px desce pela margem da lista conforme ela passa
+    pela altura de leitura, e cada marca acende quando o fio chega nela. É a
+    linguagem da prancha anatômica (seção 3) na única outra seção que é
+    sequência de verdade.
+
+    O RELÓGIO — ao lado, conta de 0 ao total da consulta acompanhando a
+    etapa que está sendo lida. É a soma das durações que já estão escritas
+    em cada linha, e é `aria-hidden`: o total em texto, embaixo da lista,
+    continua sendo o que o leitor de tela lê.
+
+  Sem suporte a animação por rolagem, ou com reduced-motion, o relógio não
+  aparece e o fio fica inteiro desenhado. A lista nunca depende dele.
 */}
 <section class="grade mt-r-respiro" aria-labelledby="consulta-titulo">
   <div class="col-span-full md:col-span-8">
@@ -18,21 +56,28 @@ const total = PRIMEIRA_CONSULTA.etapas.reduce((s, e) => s + e.minutos, 0);
     <p class="max-w-corpo mt-6">{PRIMEIRA_CONSULTA.intro}</p>
   </div>
 
-  <ol class="etapas col-span-full mt-12 md:col-span-10">
-    {
-      PRIMEIRA_CONSULTA.etapas.map((etapa, i) => (
-        <li class="etapa">
-          <span class="etapa__numero text-rotulo" data-numero aria-hidden="true">
-            {i + 1}
-          </span>
-          <span class="etapa__texto">{etapa.texto}</span>
-          <time class="etapa__tempo text-rotulo" datetime={`PT${etapa.minutos}M`}>
-            cerca de {etapa.minutos} min
-          </time>
-        </li>
-      ))
-    }
-  </ol>
+  <div class="consulta col-span-full mt-12">
+    <p class="relogio" aria-hidden="true">
+      <span class="relogio__numero"></span>
+      <span class="relogio__rotulo text-rotulo">min de consulta</span>
+    </p>
+
+    <ol class="etapas">
+      {
+        etapas.map((etapa, i) => (
+          <li class="etapa">
+            <span class="etapa__numero text-rotulo" data-numero aria-hidden="true">
+              {i + 1}
+            </span>
+            <span class="etapa__texto">{etapa.texto}</span>
+            <time class="etapa__tempo text-rotulo" datetime={`PT${etapa.minutos}M`}>
+              cerca de {etapa.minutos} min
+            </time>
+          </li>
+        ))
+      }
+    </ol>
+  </div>
 
   <p class="col-span-full text-rotulo mt-6 opacity-75 md:col-span-10">
     Somando, <time datetime={`PT${total}M`}>cerca de {total} minutos</time>. Se você chegar
@@ -55,40 +100,83 @@ const total = PRIMEIRA_CONSULTA.etapas.reduce((s, e) => s + e.minutos, 0);
   </p>
 </section>
 
+<style is:inline set:html={cssRelogio}></style>
+
 <style>
+  /* --- a lista ------------------------------------------------------------
+     A margem esquerda da lista é a calha do fio. */
   .etapas {
+    position: relative;
     list-style: none;
-    padding: 0;
+    padding: 0 0 0 1.75rem;
     margin: 0;
   }
 
+  /* O fio. Inteiro e em `--linha` por padrão: é o que fica sem movimento. */
+  .etapas::before {
+    content: '';
+    position: absolute;
+    left: 0.25rem;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--color-linha);
+    transform-origin: 50% 0;
+  }
+
+  /* No celular a duração desce para baixo do texto. Em linha, com a
+     calha do fio à esquerda, a frase ficava espremida em três linhas numa
+     coluna de 180px. */
   .etapa {
-    display: flex;
+    position: relative;
+    display: grid;
+    grid-template-columns: 1.5rem minmax(0, 1fr);
+    column-gap: 1rem;
     align-items: baseline;
-    gap: 1rem;
     padding-block: 1.1rem;
     border-top: 1px solid var(--color-linha);
+  }
+
+  @media (min-width: 640px) {
+    .etapa {
+      grid-template-columns: 1.5rem minmax(0, 1fr) auto;
+    }
   }
 
   .etapa:last-child {
     border-bottom: 1px solid var(--color-linha);
   }
 
+  /* A marca de cada etapa, em cima do fio. */
+  .etapa::before {
+    content: '';
+    position: absolute;
+    left: calc(-1.75rem + 0.25rem - 3px);
+    top: calc(1.1rem + 0.45em);
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--color-osso);
+    border: 1px solid var(--color-tinta);
+  }
+
   .etapa__numero {
-    flex: none;
-    width: 1.5rem;
     opacity: 0.55;
   }
 
-  .etapa__texto {
-    flex: 1;
-  }
-
   .etapa__tempo {
-    flex: none;
+    grid-column: 2;
+    margin-top: 0.25rem;
     opacity: 0.75;
     font-variant-numeric: tabular-nums;
-    text-align: right;
+  }
+
+  @media (min-width: 640px) {
+    .etapa__tempo {
+      grid-column: 3;
+      margin-top: 0;
+      text-align: right;
+    }
   }
 
   .ligacao-preparo {
@@ -98,5 +186,153 @@ const total = PRIMEIRA_CONSULTA.etapas.reduce((s, e) => s + e.minutos, 0);
 
   .ligacao-preparo:hover {
     text-decoration-color: currentColor;
+  }
+
+  /* --- o relógio ---------------------------------------------------------
+     Não existe sem animação por rolagem: parado, ele mostraria um número
+     que não significa nada. */
+  .relogio {
+    display: none;
+  }
+
+  /* --- a parte presa à rolagem --------------------------------------------
+     A ALTURA DE LEITURA é 55% da janela a partir do topo. O fio desenha de
+     quando o topo da lista cruza essa altura (`cover 45vh`: 45% da janela
+     acima da borda de baixo) até quando o fim dela cruza (`cover 100%`
+     menos 55% da janela). Cada etapa acende quando o próprio topo cruza a
+     mesma altura. Uma régua só para os três, então fio, marca e relógio
+     andam juntos. */
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .consulta {
+        timeline-scope: --etapas;
+      }
+
+      .etapas {
+        view-timeline: --etapas block;
+      }
+
+      /* Propriedades separadas, NUNCA o atalho `animation:` junto com
+         `animation-timeline` — ver o aviso em ComoAtendemos.astro. */
+      .etapas::before {
+        background: var(--color-tinta);
+        animation-name: desenhar-fio;
+        animation-timing-function: linear;
+        animation-fill-mode: both;
+        animation-timeline: --etapas;
+        animation-range: cover 45vh cover calc(100% - 55vh);
+      }
+
+      .etapa::before,
+      .etapa__numero {
+        animation-name: acender-etapa;
+        animation-timing-function: linear;
+        animation-fill-mode: both;
+        animation-timeline: view();
+        animation-range: cover calc(45vh - 1.5rem) cover 45vh;
+      }
+
+      .etapa::before {
+        animation-name: acender-marca;
+      }
+
+      .relogio {
+        display: flex;
+        align-items: baseline;
+        gap: 0.5rem;
+        margin: 0 0 1rem;
+        padding-block: 0.5rem;
+        background: var(--color-osso);
+        position: sticky;
+        top: 0.5rem;
+        z-index: 1;
+        /* Grudado, ele passa por cima das linhas já lidas. O fio embaixo
+           faz dele o cabeçalho da lista em vez de uma faixa cortando
+           texto. */
+        border-bottom: 1px solid var(--color-linha);
+      }
+
+      .relogio__numero {
+        min-width: 2ch;
+        font-family: var(--font-display);
+        font-size: clamp(2rem, 3vw, 2.75rem);
+        font-weight: 500;
+        line-height: 1;
+        font-variant-numeric: tabular-nums;
+        animation-name: relogio-consulta;
+        animation-timing-function: linear;
+        animation-fill-mode: both;
+        animation-timeline: --etapas;
+        animation-range: cover 45vh cover calc(100% - 55vh);
+        counter-reset: minuto var(--minuto);
+      }
+
+      .relogio__numero::after {
+        content: counter(minuto);
+      }
+
+      /* No desktop o relógio sai de cima da lista e vai para a margem
+         direita, parado na altura de leitura: ele anda junto com a linha
+         que está sendo lida. */
+      @media (min-width: 900px) {
+        .consulta {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) 11rem;
+          column-gap: calc(var(--spacing-gutter) * 2);
+        }
+
+        .relogio {
+          grid-column: 2;
+          grid-row: 1;
+          align-self: start;
+          flex-direction: column;
+          gap: 0.25rem;
+          margin: 0;
+          border-bottom: 0;
+          top: calc(55vh - 1.5rem);
+        }
+
+        .etapas {
+          grid-column: 1;
+          grid-row: 1;
+        }
+      }
+    }
+  }
+
+  @keyframes desenhar-fio {
+    from {
+      scale: 1 0;
+    }
+    to {
+      scale: 1 1;
+    }
+  }
+
+  @keyframes acender-etapa {
+    from {
+      opacity: 0.55;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes acender-marca {
+    from {
+      background: var(--color-osso);
+    }
+    to {
+      background: var(--color-tinta);
+    }
+  }
+
+  /* O relógio conta por esta propriedade. Registrada como inteiro, ela
+     interpola de 1 em 1 entre os quadros-chave — sem isso o navegador
+     trocaria o número de uma vez no meio do trecho. */
+  @property --minuto {
+    syntax: '<integer>';
+    inherits: false;
+    initial-value: 0;
   }
 </style>

@@ -20,7 +20,7 @@ import { readFile, stat } from 'node:fs/promises';
 import { join, extname, resolve, sep } from 'node:path';
 const [seletor, largura, saida] = process.argv.slice(2);
 const RAIZ=resolve('dist');
-const MIME={'.html':'text/html; charset=utf-8','.css':'text/css','.js':'text/javascript','.woff2':'font/woff2','.jpg':'image/jpeg','.webp':'image/webp','.png':'image/png','.mp4':'video/mp4','.webm':'video/webm','.glb':'model/gltf-binary','.wasm':'application/wasm'};
+const MIME={'.html':'text/html; charset=utf-8','.css':'text/css','.js':'text/javascript','.woff2':'font/woff2','.jpg':'image/jpeg','.webp':'image/webp','.avif':'image/avif','.png':'image/png','.mp4':'video/mp4','.webm':'video/webm','.glb':'model/gltf-binary','.wasm':'application/wasm'};
 const s=createServer(async(q,r)=>{try{let p=resolve(RAIZ,'.'+decodeURIComponent(q.url.split('?')[0]));if(p!==RAIZ&&!p.startsWith(RAIZ+sep)){r.writeHead(403);r.end();return;}if((await stat(p)).isDirectory())p=join(p,'index.html');r.writeHead(200,{'Content-Type':MIME[extname(p)]??'application/octet-stream'});r.end(await readFile(p));}catch{r.writeHead(404);r.end();}});
 await new Promise(r=>s.listen(4552,r));
 const b=await chromium.launch({args:['--use-gl=angle','--use-angle=swiftshader']});

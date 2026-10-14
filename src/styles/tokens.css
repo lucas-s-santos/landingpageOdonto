@@ -301,6 +301,83 @@
 }
 
 /* ==========================================================================
+   BARRA DE ROLAGEM, SELEÇÃO E CONTROLES
+
+   A barra é a prancha: o trilho é o fio de 1px que liga ponto e rótulo na
+   seção 3, e a barra de arrastar é um traço eucalipto de quina reta — o
+   mesmo raio zero do resto da página. Sob o mouse ela escurece e engrossa:
+   responde a quem vai usá-la, como todo movimento por ação.
+
+   Chrome, Edge e Safari desenham pelo `::-webkit-scrollbar`. O Firefox não
+   tem esse seletor; lá vale `scrollbar-color`, com as mesmas duas cores.
+   Os dois caminhos não se misturam de propósito: no Chrome, declarar
+   `scrollbar-color` desliga o `::-webkit-scrollbar` inteiro.
+   ========================================================================== */
+
+@layer base {
+  ::-webkit-scrollbar {
+    width: 14px;
+    height: 14px;
+  }
+
+  /* O fio: 1px de --linha exatamente no meio do trilho de osso. */
+  ::-webkit-scrollbar-track {
+    background:
+      linear-gradient(
+        to right,
+        transparent calc(50% - 0.5px),
+        var(--color-linha) calc(50% - 0.5px),
+        var(--color-linha) calc(50% + 0.5px),
+        transparent calc(50% + 0.5px)
+      ),
+      var(--color-osso);
+  }
+
+  /* A borda transparente com `background-clip` deixa o traço com 6px de
+     largura dentro de um alvo de 14px: fino de ver, fácil de pegar. */
+  ::-webkit-scrollbar-thumb {
+    min-height: 72px;
+    background-color: var(--color-eucalipto);
+    background-clip: padding-box;
+    border: 4px solid transparent;
+    border-radius: 0;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-tinta);
+    border-width: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:active {
+    background-color: var(--color-tinta);
+    border-width: 2px;
+  }
+
+  ::-webkit-scrollbar-corner {
+    background: var(--color-osso);
+  }
+
+  @supports not selector(::-webkit-scrollbar) {
+    html {
+      scrollbar-color: var(--color-eucalipto) var(--color-osso);
+      scrollbar-width: thin;
+    }
+  }
+
+  /* Texto selecionado em eucalipto e osso — o par mais forte da paleta,
+     8,6:1. O azul padrão do sistema era a única cor estranha da página. */
+  ::selection {
+    background: var(--color-eucalipto);
+    color: var(--color-osso);
+  }
+
+  /* Checkbox, radio e o resto do que o navegador desenha, na cor do CTA. */
+  :root {
+    accent-color: var(--color-eucalipto);
+  }
+}
+
+/* ==========================================================================
    UTILITÁRIOS DO PROJETO
    Poucos e nomeados pelo papel, não pela aparência.
    ========================================================================== */

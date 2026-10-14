@@ -21,6 +21,8 @@
     "dente": "astro build && node scripts/dente-check.mjs",
     "lighthouse": "astro build && node scripts/lighthouse.mjs",
     "video": "node scripts/preparar-videos.mjs",
+    "imagem": "node scripts/preparar-imagens.mjs",
+    "og": "node scripts/compartilhar.mjs",
     "recortar": "node scripts/recortar.mjs"
   },
   "dependencies": {
@@ -39,6 +41,7 @@
     "domutils": "^4.0.2",
     "htmlparser2": "^12.0.0",
     "lighthouse": "^13.4.1",
+    "sharp": "^0.35.4",
     "tailwindcss": "^4.1.18",
     "typescript": "^6.0.3"
   },
