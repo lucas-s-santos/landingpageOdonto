@@ -292,16 +292,29 @@ async function movimentoDesktop() {
     document.body.appendChild(cursor);
     document.documentElement.classList.add('tem-cursor');
 
-    let mx = innerWidth / 2;
-    let my = innerHeight / 2;
-    let cx = mx;
-    let cy = my;
+    // Nasce escondido e aparece no primeiro movimento, já em cima do
+    // ponteiro. Antes ele começava "no meio da tela", mas o laço abaixo não
+    // escreve nada enquanto não há diferença — então ficava pintado no canto
+    // de cima até a pessoa mexer o mouse, e aí voava do meio até o ponteiro.
+    let mx = 0;
+    let my = 0;
+    let cx = 0;
+    let cy = 0;
+    let visto = false;
+    cursor.style.opacity = '0';
 
     addEventListener(
       'mousemove',
       (e) => {
         mx = e.clientX;
         my = e.clientY;
+        if (!visto) {
+          visto = true;
+          cx = mx;
+          cy = my;
+          gsap.set(cursor, { x: cx, y: cy });
+          cursor.style.opacity = '';
+        }
       },
       { passive: true }
     );

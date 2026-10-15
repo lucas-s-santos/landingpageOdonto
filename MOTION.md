@@ -68,6 +68,9 @@ gsap.ticker.add(() => {
 - Desligado abaixo de 900px e sob `pointer: coarse`
 - O cursor nativo continua existindo: `cursor: none` só no wrapper, e restaurado em
   qualquer campo de formulário
+- Nasce escondido e aparece no primeiro `mousemove`, já em cima do ponteiro (acrescentado
+  em 14/10/2026). Antes ficava pintado no canto de cima até a pessoa mexer o mouse — o
+  laço não escreve posição enquanto não há diferença — e depois voava do meio da tela
 
 ## 2. Ímã nos botões
 
@@ -231,11 +234,14 @@ livro de anatomia. Movimento por ação da pessoa.
   `npm run dente` mede: zero chamadas de desenho com a cena quieta. Pixel ratio no máximo
   1,5.
 
-Três correções de modelo feitas em código, medidas: o colo do GLB vem com as faces
+Quatro correções de modelo feitas em código, medidas: o colo do GLB vem com as faces
 viradas para dentro (aparecia como faixa bege chapada — `orientarParaFora` desvira pelo
 volume com sinal); as partes têm tampas planas nas junções que, no corte, viravam uma
-lâmina escura (`tirarTampa`); e o GLB não traz normais (`mergeVertices` +
-`computeVertexNormals`).
+lâmina escura (`tirarTampa`); o GLB não traz normais (`mergeVertices` +
+`computeVertexNormals`); e as raízes começam mais largas que o colo — 0,206 do eixo contra
+0,155 em y = −0,02 —, então a boca delas saía do colo como um funil, com a borda de dentro
+à mostra (`encaixarRaiz` puxa o topo de cada raiz para dentro do colo e solta até a forma
+original em −0,26).
 
 ## 5. Prancha anatômica — a cascata
 
@@ -444,25 +450,25 @@ não ia para o compositor.
 **Só a partir de 900px.** Teste A/B alternado, mesmas condições: com a vinheta o
 Lighthouse mobile deu 89, 83 e 88; sem, 92, 90 e 90. No celular a página abre direto.
 
-## 14. O encerramento (acrescentado em 14/10/2026, refeito no mesmo dia)
+## 14. A marca de fundo do agendar (acrescentada em 14/10/2026, mudou de lugar no mesmo dia)
 
-`Fecho.astro`, só na demo. **A página sobe e descobre o rodapé por baixo.** O conteúdo
-inteiro está num invólucro opaco (`.pagina`, em `index.astro`) por cima de uma faixa
-eucalipto parada no pé da janela (`position: sticky; bottom: 0`, embaixo). No fim da
-rolagem a folha sobe e a faixa aparece, com a marca em tamanho de parede se montando:
-a marca inteira chega de mais longe (`translateY(18%) scale(0.9)` → nada), as três letras
-sobem pela borda do SVG uma depois da outra, o ponto acende, o fio — elemento HTML à parte,
-posicionado pela geometria da marca — corre até a borda da janela, e o crédito aparece.
+`Agendar.astro`, só na demo. A marca Colo em tamanho de parede fica no pé da seção "Manda uma
+mensagem", atrás do formulário, e se monta presa à rolagem da própria seção
+(`view-timeline: --agendar`): a marca inteira chega de mais longe (`translateY(18%) scale(0.9)`
+→ nada), as três letras sobem pela borda do SVG uma depois da outra, o ponto acende e o fio —
+elemento HTML à parte, posicionado pela geometria da marca — corre até a borda da janela.
 
-Linha do tempo: `scroll(root)`, no trecho `calc(100% - altura da faixa)` → `100%` — ou
-seja, ocupa uma altura de janela inteira de rolagem (~550px).
+- **Trecho:** `cover 20%` → `cover 59%`. Começa com a seção em ~60% da janela e fecha ~140px
+  depois de o topo dela passar do topo. Calibrado com o Lucas: fechando no topo (50%) lia como
+  rápido demais; fechando 300px depois (68%), demorava. O fim fica antes da última posição de
+  rolagem até em 1920×1080 (~70%) — quem rola até o fim nunca vê a marca pela metade.
+  `npm run motion` confere isso no fim da página.
+- **Tom:** 14% de osso no eucalipto, não osso cheio. Atrás de um formulário a marca inteira em
+  osso disputava com os campos; assim é parede, e o texto por cima fica acima de 6:1.
 
-**A primeira versão foi descartada:** animava a marca ao *entrar* na tela, em ~300px de
-rolagem bem no fim, e passava rápido demais para ser notada.
-
-As classes se chamam `encerramento`, não `fecho`: a frase de fecho da seção 2 já usa esse
-nome. Sem movimento, a faixa é um bloco comum no fim. Sem suporte a animação por rolagem
-(Firefox), a revelação por baixo continua — é só `sticky` — e a marca já vem inteira.
+**Onde ela estava antes:** num encerramento (`Fecho.astro`, removido) — a página subia e
+descobria por baixo uma faixa eucalipto com a marca. Saiu do rodapé porque a seção de agendar já é
+eucalipto e é onde a página pede a ação. O crédito virou parte da linha de demonstração do rodapé.
 
 ## 15. A barra de rolagem (acrescentado em 14/10/2026)
 

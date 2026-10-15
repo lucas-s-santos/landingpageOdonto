@@ -181,7 +181,7 @@ console.log('com movimento:');
   await mob.close();
 }
 
-// ------------------------------------------- a entrada e o fecho do rodapé
+// ------------------------------- a entrada e a marca de fundo do agendar
 console.log('\na entrada e o encerramento:');
 {
   const pg = await navegador.newPage({ viewport: { width: 1280, height: 800 } });
@@ -214,44 +214,46 @@ console.log('\na entrada e o encerramento:');
     await cel.close();
   }
 
-  // O ENCERRAMENTO: a faixa fica parada no pé da janela, EMBAIXO da página,
-  // e é descoberta no fim da rolagem. Três provas: no começo ela está
-  // coberta; no fim, aparece; no meio do trecho final, a marca está pela
-  // metade — o efeito acompanha a rolagem.
+  // A MARCA DE FUNDO DO AGENDAR (era o encerramento, embaixo do rodapé, até
+  // 14/10/2026). Presa à rolagem da própria seção. Três provas: antes de ela
+  // entrar, as letras estão abaixo da borda; no meio da entrada, o fio ainda
+  // corre; com a seção no topo, a marca está inteira e o fio chega à borda.
   const pecas = await pg.evaluate(() => {
-    const letra = getComputedStyle(document.querySelector('.encerramento__palavra path'));
-    const ponto = getComputedStyle(document.querySelector('.encerramento__palavra circle'));
-    const fio = getComputedStyle(document.querySelector('.encerramento__fio'));
+    const letra = getComputedStyle(document.querySelector('.agendar__palavra path'));
+    const ponto = getComputedStyle(document.querySelector('.agendar__palavra circle'));
+    const fio = getComputedStyle(document.querySelector('.agendar__fio'));
     return [letra, ponto, fio].map((c) => `${c.animationName}@${c.animationTimeline}`);
   });
-  diz(pecas.join() === 'encerra-letra@scroll(root),encerra-ponto@scroll(root),encerra-fio@scroll(root)',
-    `o encerramento: letras, ponto e fio presos à rolagem (${pecas.join(', ')})`);
-  const quemEstaNoPe = () => pg.evaluate(() => {
-    const el = document.elementFromPoint(innerWidth / 2, innerHeight - 30);
-    return el?.closest('.encerramento') ? 'faixa' : el?.closest('.pagina') ? 'pagina' : String(el?.tagName);
-  });
-  await pg.evaluate(() => scrollTo(0, 0));
-  await pg.waitForTimeout(300);
-  diz(await quemEstaNoPe() === 'pagina', 'no começo a faixa está coberta pela página');
-  const { max, h } = await pg.evaluate(() => ({
-    max: document.documentElement.scrollHeight - innerHeight,
-    h: document.querySelector('.encerramento').offsetHeight,
-  }));
-  await pg.evaluate((y) => scrollTo(0, y), Math.round(max - h * 0.5));
-  await pg.waitForTimeout(500);
-  const noMeio = await pg.evaluate(() => getComputedStyle(document.querySelector('.encerramento__fio')).scale);
-  await pg.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
-  await pg.waitForTimeout(600);
-  const noFim = await pg.evaluate(() => ({
-    letra: getComputedStyle(document.querySelector('.encerramento__palavra path')).translate,
-    fio: getComputedStyle(document.querySelector('.encerramento__fio')).scale,
+  diz(pecas.join() === 'marca-letra@--agendar,marca-ponto@--agendar,marca-fio@--agendar',
+    `a marca do agendar: letras, ponto e fio presos à rolagem (${pecas.join(', ')})`);
+  // Progresso na linha do tempo `cover` da seção: 0 quando o topo dela
+  // aparece no pé da janela, 1 quando o fim dela some pelo topo.
+  const rolarAteProgresso = (p) => pg.evaluate((p) => {
+    const s = document.querySelector('#agendar');
+    const topo = s.getBoundingClientRect().top + scrollY;
+    scrollTo(0, Math.round(topo - innerHeight + p * (s.offsetHeight + innerHeight)));
+  }, p);
+  const estadoDaMarca = () => pg.evaluate(() => ({
+    letra: getComputedStyle(document.querySelector('.agendar__palavra path')).translate,
+    fio: getComputedStyle(document.querySelector('.agendar__fio')).scale,
     estouro: document.documentElement.scrollWidth - document.documentElement.clientWidth,
   }));
-  diz(await quemEstaNoPe() === 'faixa', `no fim a página sobe e descobre a faixa (${h}px de altura)`);
-  diz(noMeio !== '1' && noMeio !== '1 1' && noMeio !== 'none',
-    `no meio do trecho final o fio ainda está correndo (scale ${noMeio})`);
+  await rolarAteProgresso(0.12);
+  await pg.waitForTimeout(400);
+  const antes = await estadoDaMarca();
+  await rolarAteProgresso(0.535);
+  await pg.waitForTimeout(400);
+  const noMeio = await estadoDaMarca();
+  // O fim da página tem que bastar para a marca fechar: quem rola até o fim
+  // nunca pode ficar com ela pela metade.
+  await pg.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
+  await pg.waitForTimeout(500);
+  const noFim = await estadoDaMarca();
+  diz(antes.letra !== '0px' && antes.letra !== 'none', `com a seção entrando, as letras ainda não subiram (${antes.letra})`);
+  diz(noMeio.fio !== '1' && noMeio.fio !== '1 1' && noMeio.fio !== 'none' && noMeio.fio !== '0 1',
+    `no meio do trecho o fio está correndo (scale ${noMeio.fio})`);
   diz((noFim.letra === '0px' || noFim.letra === 'none') && (noFim.fio === '1' || noFim.fio === '1 1' || noFim.fio === 'none'),
-    `no fim a marca está inteira e o fio chega à borda (${noFim.letra}, ${noFim.fio})`);
+    `no fim da página a marca está inteira e o fio chega à borda (${noFim.letra}, ${noFim.fio})`);
   diz(noFim.estouro <= 0, `o fio para na borda da janela, sem rolagem lateral (${noFim.estouro}px)`);
   await pg.close();
 }
@@ -537,12 +539,12 @@ console.log('\ncom prefers-reduced-motion: reduce:');
   diz(imovel.relogio === 'none', 'o relógio da consulta não aparece');
   const semVinheta = await pg.evaluate(() => ({
     entrada: getComputedStyle(document.querySelector('.entrada')).display,
-    letra: getComputedStyle(document.querySelector('.encerramento__palavra path')).translate,
-    fio: getComputedStyle(document.querySelector('.encerramento__fio')).scale,
+    letra: getComputedStyle(document.querySelector('.agendar__palavra path')).translate,
+    fio: getComputedStyle(document.querySelector('.agendar__fio')).scale,
   }));
   diz(semVinheta.entrada === 'none', 'a vinheta de entrada não existe');
   diz((semVinheta.letra === 'none' || semVinheta.letra === '0px') && semVinheta.fio === 'none',
-    'o encerramento já está inteiro, parado');
+    'a marca do agendar já está inteira, parada');
   await pg.close();
 }
 

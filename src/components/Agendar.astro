@@ -5,10 +5,14 @@ import {
   CANAL_PADRAO,
   CLINICA,
   CTA,
+  EH_DEMO,
   EXPEDIENTE,
   FUSO,
   linkWhatsApp,
 } from '../data/conteudo';
+import { ASSINATURA_SEM_FIO, FIO_DA_MARCA as F } from '../data/marca';
+
+const pct = (n: number) => `${n.toFixed(3)}%`;
 
 /**
  * Link base, montado no servidor. Já funciona sem uma linha de JavaScript:
@@ -38,6 +42,26 @@ const href = linkWhatsApp(mensagemBase);
   dentro da mensagem que ela mesma manda.
 */}
 <section id="agendar" class="agendar sobre-escuro" aria-labelledby="agendar-titulo">
+  {/*
+    A MARCA DE FUNDO, só na demo (14/10/2026). Era a faixa do encerramento,
+    descoberta embaixo do rodapé; veio para cá porque esta seção já é
+    eucalipto, e é aqui que a página pede a ação. Mesmo efeito: as letras
+    sobem uma depois da outra, o ponto acende e o fio corre até a borda —
+    presa à rolagem desta seção.
+
+    Um tom acima do fundo, não osso: atrás de um formulário, a marca inteira
+    em osso disputava com os campos e baixava o contraste do texto. Assim ela
+    é parede, e o texto continua acima de 6:1. No site de uma clínica não
+    existe: a marca é do produto, não dela.
+  */}
+  {
+    EH_DEMO && (
+      <div class="agendar__marca" aria-hidden="true" style={`--proporcao: ${F.proporcao.toFixed(4)};`}>
+        <span class="agendar__palavra" set:html={ASSINATURA_SEM_FIO} />
+        <span class="agendar__fio" style={`top: ${pct(F.centro)}; height: ${pct(F.espessura)};`} />
+      </div>
+    )
+  }
   <div class="grade">
     <div class="col-span-full md:col-span-5">
       <h2 id="agendar-titulo" class="text-secao">{AGENDAR.titulo}</h2>
@@ -238,10 +262,144 @@ const href = linkWhatsApp(mensagemBase);
 
 <style>
   .agendar {
+    position: relative;
     background: var(--color-eucalipto);
     color: var(--color-osso);
     margin-top: var(--spacing-r-longo);
     padding-block: var(--spacing-r-respiro);
+    /* O fio da marca vai além da janela; aqui ele é aparado. */
+    overflow: clip;
+  }
+
+  /* O conteúdo por cima da marca. */
+  .agendar > .grade {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* --- a marca de fundo ----------------------------------------------------
+     Encostada no pé da seção, do tamanho de uma parede. */
+  .agendar__marca {
+    position: absolute;
+    left: var(--spacing-margem);
+    bottom: 0;
+    z-index: 0;
+    width: min(76vw, 1100px);
+    aspect-ratio: var(--proporcao);
+    /* 14% de osso no eucalipto: o texto osso por cima ainda dá mais de 6:1. */
+    color: color-mix(in srgb, var(--color-osso) 14%, var(--color-eucalipto));
+    transform-origin: 0 100%;
+    pointer-events: none;
+  }
+
+  .agendar__palavra :global(svg) {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Começa um nada dentro do ponto, para não sobrar fresta, e corre até
+     muito além da janela — o `overflow: clip` da seção apara. */
+  .agendar__fio {
+    position: absolute;
+    left: calc(100% - 2px);
+    width: 100vw;
+    translate: 0 -50%;
+    background: currentColor;
+    transform-origin: 0 50%;
+  }
+
+  /* Presa à rolagem DESTA seção (MOTION.md §14). Começa com a seção em
+     cerca de 60% da janela e fecha uns 140px depois de o topo dela passar
+     do topo da janela. Calibrado com o Lucas: fechando no topo lia como
+     rápido demais; fechando 300px depois, demorava. O fim (59%) fica antes
+     do fim da página até em 1920×1080, onde a última posição dá ~70%. */
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .agendar {
+        view-timeline: --agendar block;
+      }
+
+      .agendar__marca,
+      .agendar__palavra :global(path),
+      .agendar__palavra :global(circle),
+      .agendar__fio {
+        /* Propriedades separadas, NUNCA o atalho `animation:` junto com
+           `animation-timeline` — ver o aviso em ComoAtendemos.astro. */
+        animation-timing-function: linear;
+        animation-fill-mode: both;
+        animation-timeline: --agendar;
+      }
+
+      /* A marca inteira vem de mais longe: sobe um pouco e cresce. */
+      .agendar__marca {
+        animation-name: marca-chega;
+        animation-range: cover 20% cover 54%;
+      }
+
+      /* As letras sobem por baixo da borda do SVG, uma depois da outra. O
+         deslocamento é em unidades do desenho: 700 passa da altura dele. */
+      .agendar__palavra :global(path) {
+        animation-name: marca-letra;
+      }
+      .agendar__palavra :global(path:nth-of-type(1)) {
+        animation-range: cover 20% cover 38%;
+      }
+      .agendar__palavra :global(path:nth-of-type(2)) {
+        animation-range: cover 25% cover 43%;
+      }
+      .agendar__palavra :global(path:nth-of-type(3)) {
+        animation-range: cover 30% cover 48%;
+      }
+
+      .agendar__palavra :global(circle) {
+        animation-name: marca-ponto;
+        animation-range: cover 42% cover 52%;
+        transform-box: fill-box;
+        transform-origin: center;
+      }
+
+      .agendar__fio {
+        animation-name: marca-fio;
+        animation-range: cover 48% cover 59%;
+      }
+    }
+  }
+
+  @keyframes marca-chega {
+    from {
+      transform: translateY(18%) scale(0.9);
+    }
+    to {
+      transform: none;
+    }
+  }
+
+  @keyframes marca-letra {
+    from {
+      translate: 0 700px;
+    }
+    to {
+      translate: 0 0;
+    }
+  }
+
+  @keyframes marca-ponto {
+    from {
+      scale: 0;
+    }
+    to {
+      scale: 1;
+    }
+  }
+
+  @keyframes marca-fio {
+    from {
+      scale: 0 1;
+    }
+    to {
+      scale: 1 1;
+    }
   }
 
   .campos {
