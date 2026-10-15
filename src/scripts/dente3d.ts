@@ -193,6 +193,31 @@ function tirarTampa(g: THREE.BufferGeometry, y: number, tol = 0.004) {
   g.setIndex(ficam);
 }
 
+/**
+ * Encaixa o topo das raízes dentro do colo.
+ *
+ * No GLB as raízes começam mais largas que o colo. Medido no arquivo: em
+ * y = −0,02 cada raiz vai até 0,206 do eixo e o colo só até 0,155; em
+ * −0,10, onde o colo termina, 0,191 contra 0,139. Por fora, a boca das duas
+ * raízes saía do colo como um funil — e, com a tampa tirada para o corte, a
+ * borda de dentro aparecia como um aro chapado no meio do dente inteiro.
+ *
+ * O trecho de cima de cada raiz é puxado para o eixo até caber no colo
+ * (x a 70%, z a 92% acima de −0,10), e solta aos poucos até a forma
+ * original em −0,26. O colo vira o tronco e as raízes se abrem a partir
+ * dele, que é o desenho de um molar. Feito antes das normais e das cópias
+ * reduzidas: a luz e os canais acompanham a forma nova.
+ */
+function encaixarRaiz(g: THREE.BufferGeometry) {
+  const pos = g.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const k = THREE.MathUtils.smoothstep(pos.getY(i), -0.26, -0.1);
+    pos.setX(i, pos.getX(i) * (1 - 0.3 * k));
+    pos.setZ(i, pos.getZ(i) * (1 - 0.08 * k));
+  }
+  pos.needsUpdate = true;
+}
+
 const vec3DeHex = (hex: number) =>
   new THREE.Vector3(((hex >> 16) & 255) / 255, ((hex >> 8) & 255) / 255, (hex & 255) / 255);
 
@@ -407,6 +432,7 @@ export async function montarDente(opcoes: { desktop: boolean }): Promise<Cena | 
       g.deleteAttribute('color');
       g = mergeVertices(g);
       orientarParaFora(g);
+      if (nome === 'raiz_distal' || nome === 'raiz_mesial') encaixarRaiz(g);
       g.computeVertexNormals();
       geometriaDe.set(nome, g);
       geometriasExtras.push(g);

@@ -13,7 +13,6 @@ import Agendar from '../components/Agendar.astro';
 import Rodape from '../components/Rodape.astro';
 import BarraFixa from '../components/BarraFixa.astro';
 import Entrada from '../components/Entrada.astro';
-import Fecho from '../components/Fecho.astro';
 import { CLINICA, EH_DEMO } from '../data/conteudo';
 
 /**
@@ -35,9 +34,9 @@ import { CLINICA, EH_DEMO } from '../data/conteudo';
   {/* A vinheta de entrada: só na demo. Ver Entrada.astro. */}
   {EH_DEMO && <Entrada />}
   {/*
-    A PÁGINA é uma folha opaca por cima do Fecho. No fim da rolagem ela sobe
-    e descobre a faixa que estava parada embaixo — ver Fecho.astro. Sem o
-    Fecho (fora da demo), o invólucro não muda nada.
+    O invólucro existia para o encerramento (a faixa com a marca, descoberta
+    por baixo da página no fim). A marca foi para o fundo da seção de
+    agendar em 14/10/2026 — ver Agendar.astro — e o invólucro ficou neutro.
   */}
   <div class="pagina">
   <Cabecalho />
@@ -57,8 +56,6 @@ import { CLINICA, EH_DEMO } from '../data/conteudo';
   <Rodape />
   <BarraFixa />
   </div>
-
-  {EH_DEMO && <Fecho />}
 </Base>
 
 <script>

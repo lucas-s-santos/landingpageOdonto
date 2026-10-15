@@ -747,6 +747,39 @@ que ele mesmo mede. Com o computador ocupado (40–55% de CPU, índice
 computador sem outros programas pesados, ou use o PageSpeed Insights depois
 de publicar.
 
+## Parte 4G — Sessão de 14/10/2026, noite: o reel e dois acertos
+
+Pedido: revisar se a página estava pronta para gravar um vídeo no formato do reel do
+Prumo, e gravar e editar. A revisão em 1440 e 390 não achou nada quebrado; dois detalhes
+apareceram e foram corrigidos antes de gravar:
+
+- **A emenda das raízes no 3D.** O dente inteiro mostrava a boca das duas raízes saindo do
+  colo como um funil, com um aro chapado no meio. Medido no GLB: em y = −0,02 cada raiz
+  vai até 0,206 do eixo e o colo só até 0,155. `encaixarRaiz` (em `dente3d.ts`) puxa o
+  topo das raízes para dentro do colo. `npm run dente` aprovado.
+- **O cursor customizado nascia no canto de cima** e, no primeiro movimento, voava do
+  meio da tela até o ponteiro. Agora nasce escondido e aparece em cima do ponteiro.
+  Os scripts de captura removiam o ponto da foto; quem abria a página via o ponto.
+  `npm run motion` aprovado.
+
+O reel está em `reel/` (fora do git): `colo-reel.mp4`, a capa e as ferramentas para
+regravar, com um `LEIA-ME.md`. O gravador controla o relógio da página quadro a quadro e
+grava desde o carregamento, com a vinheta. A vitrine é parada, como no reel do Prumo: uma
+versão animada (legendas, zoom, entradas) foi feita e o Lucas achou exagerada.
+
+Depois, no mesmo dia, a pedido do Lucas:
+
+- **A marca saiu do rodapé e foi para o fundo do "Manda uma mensagem"**, com o mesmo efeito
+  de montar, preso à rolagem da seção, num tom um pouco acima do eucalipto. O encerramento
+  (`Fecho.astro`) foi removido. Detalhes e a calibração do tempo no `MOTION.md` §14.
+- **Tentado e retirado: rótulos de prancha na abertura.** A abertura ficava parada por uma
+  tela de rolagem enquanto Colo e Raiz ganhavam ponto, fio e caixa sobre o vídeo. O Lucas não
+  gostou: as caixas repetem a linguagem do dente 3D da seção 3 e gastam o efeito antes da
+  hora. Não reintroduzir. A abertura continua achada "sem graça" por ele — fica em aberto.
+
+Medido depois de tudo: `npm run motion`, `dente-check`, acessibilidade e CFO-196 aprovados;
+Lighthouse mobile 90 / 100 / 100 / 66 (o 66 é o `noindex` da demo).
+
 ---
 
 ## Parte 5 — Piso de qualidade (vale em todos os passos)

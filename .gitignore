@@ -34,3 +34,10 @@ screenshots/
 # skill de terceiros (ferramenta de dev, nao faz parte da entrega)
 # reinstalar com o comando no HANDOFF.md, parte 3
 .claude/skills/
+
+# reel de divulgação (ferramenta e vídeos, fora da entrega)
+reel/
+
+# vídeos de referência do reel (pesados, ficam fora do git)
+refs/*.mov
+refs/*.mp4
