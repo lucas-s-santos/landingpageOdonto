@@ -11,9 +11,11 @@ export default defineConfig({
     inlineStylesheets: 'always',
   },
 
-  // [PREENCHER] trocar pelo domínio real antes do deploy.
-  // Usado pelo canonical e pelo JSON-LD Dentist.
-  site: 'https://clinicademo.calmdev.com.br',
+  // O domínio da demo no ar. Usado pelo canonical, pela imagem de prévia do
+  // link (og:image) e pelo JSON-LD Dentist. Era clinicademo.calmdev.com.br,
+  // que nunca foi criado: a prévia no WhatsApp saía sem imagem.
+  // [PREENCHER] trocar pelo domínio da clínica quando virar site de cliente.
+  site: 'https://colo-odonto.vercel.app',
 
   vite: {
     plugins: [tailwindcss()],

@@ -275,7 +275,8 @@ lado de um WhatsApp que funciona deixaria a demo incoerente — quem ligasse
 não seria atendido. Para separar, é só trocar `DEMO.telefone` por um número
 não atribuível.
 
-Pode ir para `clinicademo.calmdev.com.br`.
+No ar em https://colo-odonto.vercel.app (14/10/2026), que é o `site` do
+`astro.config.mjs`. O `clinicademo.calmdev.com.br` planejado antes nunca foi criado.
 
 ### O que falta quando virar cliente de verdade
 
